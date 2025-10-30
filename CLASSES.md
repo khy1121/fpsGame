@@ -1,0 +1,220 @@
+# 클래스 파일 전체 목록(기능별)
+
+본 문서는 현재 저장소에 포함된 모든 Java 클래스 파일을 기능/패키지별로 나열합니다. 경로는 `src/` 기준 상대경로입니다.
+
+## Client (루트)
+- com/fpsgame/client/AutoReconnect.java
+- com/fpsgame/client/ChatCommandHandler.java
+- com/fpsgame/client/ClientController.java
+- com/fpsgame/client/ClientDemoMain.java
+- com/fpsgame/client/ClientLauncher.java
+- com/fpsgame/client/ClientLobbyBootstrap.java
+- com/fpsgame/client/ClientMain.java
+- com/fpsgame/client/ClientPhaseBootstrap.java
+- com/fpsgame/client/ClientToolsMain.java
+- com/fpsgame/client/ClientUiBootstrap.java
+- com/fpsgame/client/LobbyFlowBootstrap.java
+- com/fpsgame/client/MainClient.java
+- com/fpsgame/client/NetClient.java
+- com/fpsgame/client/NetLogger.java
+- com/fpsgame/client/NetPlaygroundMain.java
+- com/fpsgame/client/PhaseAutoRegister.java
+- com/fpsgame/client/PhaseIntegration.java
+
+## Client/Model
+- com/fpsgame/client/model/ClientInputPump.java
+- com/fpsgame/client/model/ClientPhaseBus.java
+- com/fpsgame/client/model/ClientPhaseModel.java
+- com/fpsgame/client/model/ClientPhaseModelUpdater.java
+- com/fpsgame/client/model/Keybinds.java
+- com/fpsgame/client/model/PhaseEventLogger.java
+- com/fpsgame/client/model/PlayerSnapshotBuffer.java
+- com/fpsgame/client/model/PlayerState.java
+- com/fpsgame/client/model/RttMonitor.java
+- com/fpsgame/client/model/Settings.java
+- com/fpsgame/client/model/SettingsStore.java
+- com/fpsgame/client/model/SnapshotBridge.java
+- com/fpsgame/client/model/SnapshotBuffer.java
+- com/fpsgame/client/model/Viewport.java
+
+## Client/Net
+- com/fpsgame/client/net/DemoPayloads.java
+- com/fpsgame/client/net/MapVoteSender.java
+- com/fpsgame/client/net/NetClientHooks.java
+- com/fpsgame/client/net/NetClientPhaseBridge.java
+- com/fpsgame/client/net/PhaseAutoRegister.java
+- com/fpsgame/client/net/PhaseFrameAdapter.java
+- com/fpsgame/client/net/ReadyToggleSender.java
+- com/fpsgame/client/net/SetSelectionSender.java
+
+## Client/Tools
+- com/fpsgame/client/tools/LobbySandboxFrame.java
+
+## Client/UI
+- com/fpsgame/client/ui/CenterMessageOverlay.java
+- com/fpsgame/client/ui/CenterMessageOverlayPanel.java
+- com/fpsgame/client/ui/CharacterSelectPanel.java
+- com/fpsgame/client/ui/CharacterSelectPhaseBinder.java
+- com/fpsgame/client/ui/CharacterSelectUiInstaller.java
+- com/fpsgame/client/ui/ChatConsoleFrame.java
+- com/fpsgame/client/ui/ChatDock.java
+- com/fpsgame/client/ui/ChatInputPanel.java
+- com/fpsgame/client/ui/ChatPanel.java
+- com/fpsgame/client/ui/ChatWindow.java
+- com/fpsgame/client/ui/ClientApp.java
+- com/fpsgame/client/ui/ConnectionStatusBar.java
+- com/fpsgame/client/ui/ConnectPanel.java
+- com/fpsgame/client/ui/CountdownOverlayBinder.java
+- com/fpsgame/client/ui/EmbeddedChatPanel.java
+- com/fpsgame/client/ui/FpsOverlayPanel.java
+- com/fpsgame/client/ui/GameCanvas.java
+- com/fpsgame/client/ui/GameCanvasNetDemo.java
+- com/fpsgame/client/ui/GameFrame.java
+- com/fpsgame/client/ui/GameHudLayer.java
+- com/fpsgame/client/ui/GameScreenFrame.java
+- com/fpsgame/client/ui/HudBarPanel.java
+- com/fpsgame/client/ui/HudOverlayLayer.java
+- com/fpsgame/client/ui/HudOverlayToggleKeybind.java
+- com/fpsgame/client/ui/HudPanel.java
+- com/fpsgame/client/ui/JoinDialog.java
+- com/fpsgame/client/ui/KeybindEditorPanel.java
+- com/fpsgame/client/ui/LatencyGraphPanel.java
+- com/fpsgame/client/ui/LatencyIndicator.java
+- com/fpsgame/client/ui/LobbyCenterCoordinator.java
+- com/fpsgame/client/ui/LobbyCenterStackPanel.java
+- com/fpsgame/client/ui/LobbyLayoutInstaller.java
+- com/fpsgame/client/ui/LobbyPanel.java
+- com/fpsgame/client/ui/LobbyPanelReadyBridge.java
+- com/fpsgame/client/ui/LobbyReadyBinder.java
+- com/fpsgame/client/ui/LobbyReadyListModel.java
+- com/fpsgame/client/ui/LobbyReadyPanel.java
+- com/fpsgame/client/ui/LobbyUiInstaller.java
+- com/fpsgame/client/ui/MapVotePanel.java
+- com/fpsgame/client/ui/MapVotePhaseBinder.java
+- com/fpsgame/client/ui/MapVoteUiInstaller.java
+- com/fpsgame/client/ui/MiniConsolePanel.java
+- com/fpsgame/client/ui/NetDemoFrame.java
+- com/fpsgame/client/ui/NetPlaygroundFrame.java
+- com/fpsgame/client/ui/NetStatusPanel.java
+- com/fpsgame/client/ui/OptionsWindow.java
+- com/fpsgame/client/ui/PhaseHudBinder.java
+- com/fpsgame/client/ui/PhaseHudInstaller.java
+- com/fpsgame/client/ui/PhaseHudPanel.java
+- com/fpsgame/client/ui/PhaseUiInstaller.java
+- com/fpsgame/client/ui/PlaygroundFrame.java
+- com/fpsgame/client/ui/ReadyButton.java
+- com/fpsgame/client/ui/RoundResultOverlayBinder.java
+- com/fpsgame/client/ui/SettingsFrame.java
+- com/fpsgame/client/ui/SettingsPanel.java
+- com/fpsgame/client/ui/Toast.java
+
+## Common (루트)
+- com/fpsgame/common/Binary.java
+- com/fpsgame/common/BitPacker.java
+- com/fpsgame/common/CooldownTimer.java
+- com/fpsgame/common/Debouncer.java
+- com/fpsgame/common/ExpSmoother.java
+- com/fpsgame/common/FixedTickRunner.java
+- com/fpsgame/common/GameEnums.java
+- com/fpsgame/common/InputPackets.java
+- com/fpsgame/common/Mathf.java
+- com/fpsgame/common/MovingAverage.java
+- com/fpsgame/common/OpNames.java
+- com/fpsgame/common/PlayerNet.java
+- com/fpsgame/common/ProjectilesV1.java
+- com/fpsgame/common/ProjectilesV2.java
+- com/fpsgame/common/PropsFile.java
+- com/fpsgame/common/Protocol.java
+- com/fpsgame/common/RateLimiter.java
+- com/fpsgame/common/Rect.java
+- com/fpsgame/common/SnapshotV1.java
+- com/fpsgame/common/SnapshotV2.java
+- com/fpsgame/common/Stopwatch.java
+- com/fpsgame/common/Threads.java
+- com/fpsgame/common/Utf8.java
+- com/fpsgame/common/Vec2.java
+- com/fpsgame/common/Wall.java
+- com/fpsgame/common/World.java
+
+## Common/Character (핵심/상태/사운드/투사체/타입)
+- com/fpsgame/common/character/Character.java
+- com/fpsgame/common/character/CharacterFactory.java
+
+### Ability
+- com/fpsgame/common/character/ability/Ability.java
+- com/fpsgame/common/character/ability/BasicAbility.java
+- com/fpsgame/common/character/ability/TacticalAbility.java
+- com/fpsgame/common/character/ability/UltimateAbility.java
+
+### Projectile
+- com/fpsgame/common/character/projectile/BouncingProjectile.java
+- com/fpsgame/common/character/projectile/Bullet.java
+- com/fpsgame/common/character/projectile/ExplosiveProjectile.java
+- com/fpsgame/common/character/projectile/PiercingProjectile.java
+- com/fpsgame/common/character/projectile/Projectile.java
+- com/fpsgame/common/character/projectile/ProjectileManager.java
+
+### Sound
+- com/fpsgame/common/character/sound/FootstepManager.java
+- com/fpsgame/common/character/sound/FootstepSound.java
+- com/fpsgame/common/character/sound/SkillSound.java
+- com/fpsgame/common/character/sound/SoundManager.java
+
+### State
+- com/fpsgame/common/character/state/AliveState.java
+- com/fpsgame/common/character/state/CharacterState.java
+- com/fpsgame/common/character/state/DeadState.java
+
+### Types
+- com/fpsgame/common/character/types/Bulldog.java
+- com/fpsgame/common/character/types/General.java
+- com/fpsgame/common/character/types/Piper.java
+- com/fpsgame/common/character/types/Raven.java
+- com/fpsgame/common/character/types/Sage.java
+- com/fpsgame/common/character/types/Skull.java
+- com/fpsgame/common/character/types/Sniper.java
+- com/fpsgame/common/character/types/Steam.java
+- com/fpsgame/common/character/types/Tank.java
+- com/fpsgame/common/character/types/Technician.java
+- com/fpsgame/common/character/types/Wildcat.java
+
+### Types/Abilities(세부)
+- com/fpsgame/common/character/types/bulldog/ability/BulldogMinigun.java
+- com/fpsgame/common/character/types/bulldog/ability/CoverStance.java
+- com/fpsgame/common/character/types/bulldog/ability/ShatterBurst.java
+- com/fpsgame/common/character/types/ghost/Ghost.java
+- com/fpsgame/common/character/types/ghost/ability/GhostBasicAttack.java
+- com/fpsgame/common/character/types/ghost/ability/GhostInvisibility.java
+- com/fpsgame/common/character/types/ghost/ability/GhostUltimate.java
+- com/fpsgame/common/character/types/piper/ability/PiperMark.java
+- com/fpsgame/common/character/types/piper/ability/PiperThermalScope.java
+- com/fpsgame/common/character/types/raven/ability/RavenBasicAttack.java
+- com/fpsgame/common/character/types/raven/ability/RavenDash.java
+- com/fpsgame/common/character/types/raven/ability/RavenUltimate.java
+- com/fpsgame/common/character/types/sniper/ability/SniperBasicAttack.java
+- com/fpsgame/common/character/types/sniper/ability/SniperScope.java
+- com/fpsgame/common/character/types/sniper/ability/SniperUltimate.java
+- com/fpsgame/common/character/types/tank/ability/TankBasicAttack.java
+- com/fpsgame/common/character/types/tank/ability/TankShield.java
+- com/fpsgame/common/character/types/tank/ability/TankUltimate.java
+
+## Common/Projectile
+- com/fpsgame/common/projectile/Bullet.java
+- com/fpsgame/common/projectile/ProjectileManager.java
+
+## Server
+- com/fpsgame/server/DefaultServerRouter.java
+- com/fpsgame/server/GameServer.java
+- com/fpsgame/server/LobbyState.java
+- com/fpsgame/server/MainServer.java
+- com/fpsgame/server/MapVoteManager.java
+- com/fpsgame/server/NetTickLoop.java
+- com/fpsgame/server/PlayerServerRouter.java
+- com/fpsgame/server/PlayerSyncService.java
+- com/fpsgame/server/RoundController.java
+- com/fpsgame/server/RouterHooksAdapter.java
+- com/fpsgame/server/ServerMain.java
+- com/fpsgame/server/ServerRouter.java
+- com/fpsgame/server/ServerSession.java
+- com/fpsgame/server/SessionRegistry.java
+- com/fpsgame/server/TcpServer.java
