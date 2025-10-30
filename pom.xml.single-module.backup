@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?><!-- /pom.xml -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"<project xmlns="http://maven.apache.org/POM/4.0.0"
+
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <modelVersion>4.0.0</modelVersion>    <modelVersion>4.0.0</modelVersion>
+
+
+
+    <groupId>com.fpsgame</groupId>    <groupId>com.fpsgame</groupId>
+
+    <artifactId>comfps</artifactId>    <artifactId>fpsgame-parent</artifactId>
+
+    <version>1.0.0-SNAPSHOT</version>    <version>1.0.0-SNAPSHOT</version>
+
+    <packaging>jar</packaging>    <packaging>pom</packaging>
+
+    <name>FPS Game</name>    <name>FPS Game (Parent)</name>
+
+    <description>Multiplayer FPS Game with Swing UI</description>
+
+    <modules>
+
+    <properties>        <module>common</module>
+
+        <maven.compiler.source>17</maven.compiler.source>        <module>model</module>
+
+        <maven.compiler.target>17</maven.compiler.target>        <module>character</module>
+
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>        <module>net</module>
+
+        <junit.version>5.11.0</junit.version>        <module>ui</module>
+
+    </properties>        <module>client</module>
+
+        <module>server</module>
+
+    <dependencies>    </modules>
+
+        <!-- JUnit 5 for testing -->
+
+        <dependency>    <properties>
+
+            <groupId>org.junit.jupiter</groupId>        <maven.compiler.source>17</maven.compiler.source>
+
+            <artifactId>junit-jupiter</artifactId>        <maven.compiler.target>17</maven.compiler.target>
+
+            <version>${junit.version}</version>        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+            <scope>test</scope>        <junit.version>5.11.0</junit.version>
+
+        </dependency>        <surefire.version>3.2.5</surefire.version>
+
+    </dependencies>        <failsafe.version>3.2.5</failsafe.version>
+
+    </properties>
+
+    <build>
+
+        <sourceDirectory>src</sourceDirectory>    <dependencyManagement>
+
+        <testSourceDirectory>src/test/java</testSourceDirectory>        <dependencies>
+
+                    <dependency>
+
+        <plugins>                <groupId>org.junit.jupiter</groupId>
+
+            <!-- Compiler Plugin -->                <artifactId>junit-jupiter</artifactId>
+
+            <plugin>                <version>${junit.version}</version>
+
+                <groupId>org.apache.maven.plugins</groupId>                <scope>test</scope>
+
+                <artifactId>maven-compiler-plugin</artifactId>            </dependency>
+
+                <version>3.11.0</version>        </dependencies>
+
+                <configuration>    </dependencyManagement>
+
+                    <source>17</source>
+
+                    <target>17</target>    <build>
+
+                    <encoding>UTF-8</encoding>        <plugins>
+
+                </configuration>            <!-- 단위 테스트(JUnit 5) -->
+
+            </plugin>            <plugin>
+
+                <groupId>org.apache.maven.plugins</groupId>
+
+            <!-- Surefire Plugin for Unit Tests -->                <artifactId>maven-surefire-plugin</artifactId>
+
+            <plugin>                <version>${surefire.version}</version>
+
+                <groupId>org.apache.maven.plugins</groupId>                <configuration>
+
+                <artifactId>maven-surefire-plugin</artifactId>                    <useModulePath>false</useModulePath>
+
+                <version>3.2.5</version>                    <includes>
+
+                <configuration>                        <include>**/*Test.java</include>
+
+                    <useModulePath>false</useModulePath>                    </includes>
+
+                    <includes>                </configuration>
+
+                        <include>**/*Test.java</include>            </plugin>
+
+                    </includes>
+
+                    <!-- ViewportTransformTest 제외 (JUnit 의존성 누락) -->            <!-- 통합 테스트 필요 시 (src/it/java) -->
+
+                    <excludes>            <plugin>
+
+                        <exclude>**/ViewportTransformTest.java</exclude>                <groupId>org.apache.maven.plugins</groupId>
+
+                    </excludes>                <artifactId>maven-failsafe-plugin</artifactId>
+
+                </configuration>                <version>${failsafe.version}</version>
+
+            </plugin>                <executions>
+
+                    <execution>
+
+            <!-- JAR Plugin - 실행 가능한 JAR 생성 -->                        <goals>
+
+            <plugin>                            <goal>integration-test</goal>
+
+                <groupId>org.apache.maven.plugins</groupId>                            <goal>verify</goal>
+
+                <artifactId>maven-jar-plugin</artifactId>                        </goals>
+
+                <version>3.3.0</version>                    </execution>
+
+                <configuration>                </executions>
+
+                    <archive>            </plugin>
+
+                        <manifest>        </plugins>
+
+                            <addClasspath>true</addClasspath>    </build>
+
+                            <!-- 기본 메인 클래스 지정 --></project>
+
+                            <mainClass>com.fpsgame.client.ClientMain</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Exec Plugin - 애플리케이션 실행 -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <!-- Client 실행 프로필 -->
+                    <execution>
+                        <id>run-client</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.fpsgame.client.ClientMain</mainClass>
+                        </configuration>
+                    </execution>
+                    <!-- Server 실행 프로필 -->
+                    <execution>
+                        <id>run-server</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>com.fpsgame.server.ServerMain</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- 실행 프로필 정의 -->
+    <profiles>
+        <!-- 클라이언트 실행 프로필 -->
+        <profile>
+            <id>client</id>
+            <properties>
+                <exec.mainClass>com.fpsgame.client.ClientMain</exec.mainClass>
+            </properties>
+        </profile>
+
+        <!-- 서버 실행 프로필 -->
+        <profile>
+            <id>server</id>
+            <properties>
+                <exec.mainClass>com.fpsgame.server.ServerMain</exec.mainClass>
+            </properties>
+        </profile>
+
+        <!-- UI 앱 실행 프로필 -->
+        <profile>
+            <id>ui</id>
+            <properties>
+                <exec.mainClass>com.fpsgame.client.ui.ClientApp</exec.mainClass>
+            </properties>
+        </profile>
+
+        <!-- 네트워크 데모 실행 프로필 -->
+        <profile>
+            <id>demo</id>
+            <properties>
+                <exec.mainClass>com.fpsgame.client.ui.GameCanvasNetDemo</exec.mainClass>
+            </properties>
+        </profile>
+    </profiles>
+</project>

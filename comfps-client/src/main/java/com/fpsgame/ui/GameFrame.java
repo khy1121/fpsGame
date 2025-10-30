@@ -1,13 +1,34 @@
 package com.fpsgame.client.ui;
 
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JSplitPane;
+import javax.swing.JTextField;
+import javax.swing.JToggleButton;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
+import javax.swing.border.EmptyBorder;
+
 import com.fpsgame.client.ClientController;
 import com.fpsgame.common.GameEnums;
 import com.fpsgame.common.Protocol;
-import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 
 /**
  * 메인 게임 창 - 전반적인 게임 UI와 컨트롤을 처리합니다.
@@ -64,15 +85,23 @@ public class GameFrame extends JFrame implements ClientController.Ui {
         top.add(connectBtn); top.add(disconnectBtn); top.add(pingBtn);
         add(top, BorderLayout.NORTH);
 
-        // 중앙 분할 패널: 채팅창(좌) / HUD(우)
+        // 중앙 분할 패널: 메인 게임/HUD 영역(좌) / 채팅창(우)
         JSplitPane center = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
-        center.setResizeWeight(0.75);
-        center.setDividerLocation(0.75);
+        center.setResizeWeight(0.8);  // 좌측(게임/HUD)에 80%, 우측(채팅)에 20%
         center.setOneTouchExpandable(true);
         center.setContinuousLayout(true);
-        // ChatWindow를 JFrame에서 분리하여 패널로 감싸서 좌측에 배치
-        center.setLeftComponent(wrap(chatWindowEmbed.getContentPane()));
-        center.setRightComponent(hud);
+        
+        // HUD를 메인 영역으로 설정 (게임 화면 + 정보)
+        hud.setMinimumSize(new Dimension(600, 400));
+        hud.setPreferredSize(new Dimension(1000, 600));
+        
+        // 채팅창을 오른쪽에 배치 (최소 크기 설정)
+        JComponent chatPanel = wrap(chatWindowEmbed.getContentPane());
+        chatPanel.setMinimumSize(new Dimension(250, 400));
+        chatPanel.setPreferredSize(new Dimension(320, 600));
+        
+        center.setLeftComponent(hud);
+        center.setRightComponent(chatPanel);
         add(center, BorderLayout.CENTER);
 
         // 하단 패널: READY/팀/캐릭터/맵 선택
