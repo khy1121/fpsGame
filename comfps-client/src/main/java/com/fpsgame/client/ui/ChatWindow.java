@@ -11,6 +11,7 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 /**
  * 간단 채팅 전용 창(Opcode 호환 + 예외 처리 보강판).
@@ -37,6 +38,9 @@ public class ChatWindow extends JFrame {
 
     // 네트워크 핸들
     private volatile NetClient client; // null 이면 오프라인
+    
+    // 채팅 전송 콜백 (LobbyFrame에서 사용)
+    private Consumer<String> onSendChat;
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("HH:mm:ss");
 
@@ -176,6 +180,13 @@ public class ChatWindow extends JFrame {
         String s = inputField.getText().trim();
         if (s.isEmpty()) return;
 
+        // LobbyFrame 콜백이 설정되어 있으면 콜백 사용
+        if (onSendChat != null) {
+            onSendChat.accept(s);
+            inputField.setText("");
+            return;
+        }
+
         NetClient c = client;
         if (c == null || !c.isOpen()) {
             // 오프라인 echo
@@ -218,6 +229,38 @@ public class ChatWindow extends JFrame {
     }
 
     private static String now() { return TS.format(LocalTime.now()); }
+
+    // ---------------------------------------------------------------------
+    // LobbyFrame 인터페이스
+    // ---------------------------------------------------------------------
+    
+    /**
+     * 채팅 전송 콜백 설정
+     */
+    public void setOnSendChat(Consumer<String> callback) {
+        this.onSendChat = callback;
+    }
+    
+    /**
+     * 시스템 메시지 추가
+     */
+    public void appendSystemMessage(String msg) {
+        logSys(msg);
+    }
+    
+    /**
+     * 다른 플레이어 메시지 추가
+     */
+    public void appendOtherMessage(String msg) {
+        logRemote(msg);
+    }
+    
+    /**
+     * 내 메시지 추가
+     */
+    public void appendMyMessage(String msg) {
+        logLocal(msg);
+    }
 
     // 단독 실행
     public static void main(String[] args) {

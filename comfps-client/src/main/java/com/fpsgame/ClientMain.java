@@ -1,13 +1,34 @@
 package com.fpsgame.client;
 
-import com.fpsgame.common.Protocol;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
-import javax.swing.*;
+
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.JToggleButton;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
+
+import com.fpsgame.common.Protocol;
 
 /**
  * 데모/테스트용 최소 Swing 클라이언트 시작점.
@@ -54,10 +75,10 @@ public final class ClientMain {
         private final JTextField chatInput = new JTextField();
         private final JButton    sendBtn = new JButton("Send");
         private final JToggleButton readyToggle = new JToggleButton("READY");
-        private final JComboBox<String> teamCombo = new JComboBox<>(new String[]{"Team0","Team1","Team2","Team3"});
-        private final JComboBox<String> charCombo = new JComboBox<>(new String[]{"Sage","Piper","Technician","General","Bulldog","Wildcat","Raven","Ghost","Skull","Steam"});
+        private final JComboBox<String> teamCombo = new JComboBox<>(new String[]{"RED","BLUE"});
+        private final JComboBox<String> charCombo = new JComboBox<>(new String[]{"Raven","Piper","Bulldog","Sage","Ghost","Wildcat","Technician","General","Steam","Skull"});
         private final JButton    selectBtn = new JButton("Select");
-        private final JComboBox<String> mapCombo = new JComboBox<>(new String[]{"terminal","neonCity","ForestOutpost"});
+        private final JComboBox<String> mapCombo = new JComboBox<>(new String[]{"terminal","neonCity","forestOutpost"});
         private final JButton    voteBtn = new JButton("Vote");
 
         private final JLabel statusLabel = new JLabel("Disconnected");
