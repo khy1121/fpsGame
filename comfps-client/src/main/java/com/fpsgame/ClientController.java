@@ -30,6 +30,11 @@ public class ClientController {
         default void onPingPong(long rttMillis) {}
         /** Ready status update (ready/total). */
         default void onReadyStatus(int ready, int total) {}
+        /** Ready status with player list (team slots). */
+        default void onReadyStatusDetailed(Protocol.ReadyStatus status) {
+            // 레거시 콜백 호출
+            onReadyStatus(status.ready, status.total);
+        }
     }
 
     //
@@ -241,7 +246,14 @@ public class ClientController {
 
             @Override
             public void onReadyStatus(int ready, int total) {
-                dispatchEdt(() -> ui.onReadyStatus(ready, total));
+                dispatchEdt(() -> {
+                    ui.onReadyStatus(ready, total);
+                });
+            }
+
+            // ReadyStatus 전체 객체를 받는 새 메서드 (플레이어 리스트 포함)
+            public void onReadyStatusFull(Protocol.ReadyStatus rs) {
+                dispatchEdt(() -> ui.onReadyStatusDetailed(rs));
             }
 
             @Override

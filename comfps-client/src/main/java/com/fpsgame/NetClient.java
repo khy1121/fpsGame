@@ -218,7 +218,14 @@ public class NetClient implements Closeable {
             case Protocol.Opcode.ROUND_RESULT -> fireRoundResult(Protocol.parseRoundResult(f.payload));
             case Protocol.Opcode.READY_STATUS -> {
                 var rs = Protocol.parseReadyStatus(f.payload);
-                fireReadyStatus(rs); // 전체 ReadyStatus 객체 전달
+                // 리플렉션으로 onReadyStatusFull 메서드 호출 시도
+                try {
+                    java.lang.reflect.Method m = listener.getClass().getMethod("onReadyStatusFull", Protocol.ReadyStatus.class);
+                    m.invoke(listener, rs);
+                } catch (Exception ignore) {
+                    // fallback: 레거시 메서드만 호출
+                    fireReadyStatus(rs);
+                }
             }
             default -> { }
         }
@@ -255,18 +262,7 @@ public class NetClient implements Closeable {
     }
 
     private void fireReadyStatus(Protocol.ReadyStatus rs) {
-        dispatch(() -> {
-            // 레거시 인터페이스 호출 (ready, total만)
-            listener.onReadyStatus(rs.ready, rs.total);
-            
-            // 새 버전 인터페이스 호출 (플레이어 리스트 포함)
-            if (listener instanceof ClientController.Ui) {
-                ClientController.Ui ui = (ClientController.Ui) listener;
-                if (ui instanceof com.fpsgame.client.ui.LobbyFrame) {
-                    ((com.fpsgame.client.ui.LobbyFrame) ui).onReadyStatusWithPlayers(rs);
-                }
-            }
-        });
+        dispatch(() -> listener.onReadyStatus(rs.ready, rs.total));
     }
 
     private void fireDisconnected(String msg) {

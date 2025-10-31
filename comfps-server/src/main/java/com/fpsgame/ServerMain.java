@@ -165,6 +165,16 @@ public final class ServerMain {
             } catch (Throwable t) {
                 registry.log("[ERROR] Welcome send failed to sid=" + sessionId + ": " + t);
             }
+            
+            // 팀 슬롯 동기화: 모든 클라이언트에게 현재 플레이어 상태 브로드캐스트
+            try {
+                int readyCount = countReadyPlayers();
+                int total = registry.size();
+                registry.broadcastReadyStatus(readyCount, total); // 플레이어 리스트 포함
+                registry.log("[BC] Team slots synced after selection (ready=" + readyCount + "/" + total + ")");
+            } catch (Throwable t) {
+                registry.log("[ERROR] Team slots sync failed: " + t);
+            }
         }
 
         @Override
