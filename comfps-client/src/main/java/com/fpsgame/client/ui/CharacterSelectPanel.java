@@ -51,7 +51,7 @@ public class CharacterSelectPanel extends JPanel {
         setBorder(new EmptyBorder(12, 12, 12, 12));
 
         JLabel title = new JLabel("Character Select");
-        title.setFont(title.getFont().deriveFont(Font.BOLD, 16f));
+        title.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         title.setForeground(new Color(230, 230, 230));
 
         JPanel header = new JPanel(new BorderLayout());
@@ -129,23 +129,25 @@ public class CharacterSelectPanel extends JPanel {
 
         JLabel name = new JLabel(pretty(characterId));
         name.setForeground(new Color(235, 235, 235));
-        name.setFont(name.getFont().deriveFont(Font.BOLD, 14f));
+        name.setFont(new Font("맑은 고딕", Font.BOLD, 15));
 
         // 캐릭터 이미지(있을 경우)
         JLabel image = new JLabel();
         image.setHorizontalAlignment(SwingConstants.CENTER);
-        image.setOpaque(false);
-        BufferedImageLoader.loadCharacter(characterId, image, 120, 120);
+        image.setOpaque(true);
+        image.setBackground(new Color(24, 24, 24));
+        image.setPreferredSize(new java.awt.Dimension(140, 140));
+        BufferedImageLoader.loadCharacter(characterId, image, 140, 140);
 
         // 설명 영역(읽기 전용)
         JTextArea desc = new JTextArea(defaultDescription(characterId));
         desc.setEditable(false);
         desc.setOpaque(false);
         desc.setForeground(new Color(180, 180, 180));
-        desc.setFont(desc.getFont().deriveFont(12f));
+        desc.setFont(new Font("맑은 고딕", Font.PLAIN, 12));
         desc.setLineWrap(true);
         desc.setWrapStyleWord(true);
-        desc.setBorder(new EmptyBorder(4, 0, 8, 0));
+        desc.setBorder(new EmptyBorder(6, 0, 10, 0));
 
         JButton choose = new JButton("Choose");
         choose.addActionListener(e -> sendSelection(characterId));

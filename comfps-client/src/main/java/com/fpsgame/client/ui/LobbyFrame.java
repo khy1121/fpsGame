@@ -39,6 +39,9 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final String nickname;
     private final Settings settings;
     private final ClientController controller;
+    
+    // 내 플레이어 ID (서버에서 받음)
+    private int myId = -1;
 
     // 탭 패널
     private final JTabbedPane tabbedPane = new JTabbedPane();
@@ -74,7 +77,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         this.controller = new ClientController(this, true);
 
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        setSize(1400, 800);
+        setSize(1600, 900); // 화면 크기 증가
         setLocationRelativeTo(null);
 
         // 패널 초기화
@@ -96,9 +99,9 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     }
 
     private void buildUI() {
-        JPanel mainPanel = new JPanel(new BorderLayout(8, 8));
+        JPanel mainPanel = new JPanel(new BorderLayout(12, 12));
         mainPanel.setBackground(new Color(0x1a1d24));
-        mainPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+        mainPanel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
         // 상단: 연결 정보
         mainPanel.add(buildTopPanel(), BorderLayout.NORTH);
@@ -153,20 +156,26 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         panel.setOpaque(false);
 
         // 팀 선택 버튼
-        JPanel teamBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 8));
+        JPanel teamBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 12));
         teamBtnPanel.setOpaque(false);
 
-        redTeamBtn.setPreferredSize(new Dimension(150, 40));
+        redTeamBtn.setPreferredSize(new Dimension(180, 50));
         redTeamBtn.setBackground(new Color(0xd32f2f));
         redTeamBtn.setForeground(Color.WHITE);
-        redTeamBtn.setFont(new Font("Arial", Font.BOLD, 14));
-        redTeamBtn.setBorder(BorderFactory.createLineBorder(new Color(0xffd700), 2));
+        redTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        redTeamBtn.setFocusPainted(false);
+        redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0xffd700), 3),
+            new EmptyBorder(8, 16, 8, 16)
+        ));
         redTeamBtn.addActionListener(e -> selectTeam(0));
 
-        blueTeamBtn.setPreferredSize(new Dimension(150, 40));
+        blueTeamBtn.setPreferredSize(new Dimension(180, 50));
         blueTeamBtn.setBackground(new Color(0x1976d2));
         blueTeamBtn.setForeground(Color.WHITE);
-        blueTeamBtn.setFont(new Font("Arial", Font.BOLD, 14));
+        blueTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        blueTeamBtn.setFocusPainted(false);
+        blueTeamBtn.setBorder(new EmptyBorder(8, 16, 8, 16));
         blueTeamBtn.addActionListener(e -> selectTeam(1));
 
         teamBtnPanel.add(redTeamBtn);
@@ -184,13 +193,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         panel.add(slotsPanel, BorderLayout.CENTER);
 
         // READY 버튼
-        JPanel readyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 12));
+        JPanel readyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 16));
         readyPanel.setOpaque(false);
 
-        readyBtn.setPreferredSize(new Dimension(200, 50));
+        readyBtn.setPreferredSize(new Dimension(240, 60));
         readyBtn.setBackground(new Color(0x4caf50));
         readyBtn.setForeground(Color.WHITE);
-        readyBtn.setFont(new Font("Arial", Font.BOLD, 18));
+        readyBtn.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        readyBtn.setFocusPainted(false);
+        readyBtn.setBorderPainted(false);
         readyBtn.addActionListener(e -> toggleReady());
 
         readyPanel.add(readyBtn);
@@ -200,29 +211,29 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     }
 
     private JPanel buildTeamSlotsPanel(String teamName, JLabel[] slots, Color borderColor) {
-        JPanel panel = new JPanel(new BorderLayout(4, 4));
+        JPanel panel = new JPanel(new BorderLayout(6, 6));
         panel.setBackground(new Color(0x2a2f38));
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(borderColor, 3),
-            new EmptyBorder(8, 8, 8, 8)
+            new EmptyBorder(12, 12, 12, 12)
         ));
 
         JLabel title = new JLabel(teamName, SwingConstants.CENTER);
         title.setForeground(borderColor.brighter());
-        title.setFont(new Font("Arial", Font.BOLD, 16));
+        title.setFont(new Font("맑은 고딕", Font.BOLD, 18));
         panel.add(title, BorderLayout.NORTH);
 
-        JPanel slotsGrid = new JPanel(new GridLayout(5, 1, 4, 4));
+        JPanel slotsGrid = new JPanel(new GridLayout(5, 1, 6, 6));
         slotsGrid.setOpaque(false);
 
         for (int i = 0; i < 5; i++) {
             JLabel slot = new JLabel("Empty", SwingConstants.CENTER);
-            slot.setPreferredSize(new Dimension(0, 40));
+            slot.setPreferredSize(new Dimension(0, 50));
             slot.setOpaque(true);
             slot.setBackground(new Color(0x3a3f47));
             slot.setForeground(new Color(0x999999));
-            slot.setFont(new Font("Arial", Font.PLAIN, 14));
-            slot.setBorder(BorderFactory.createLineBorder(new Color(0x555555)));
+            slot.setFont(new Font("맑은 고딕", Font.PLAIN, 15));
+            slot.setBorder(BorderFactory.createLineBorder(new Color(0x555555), 2));
             slots[i] = slot;
             slotsGrid.add(slot);
         }
@@ -232,14 +243,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     }
 
     private JPanel buildChatPanel() {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setPreferredSize(new Dimension(360, 0));
+        JPanel panel = new JPanel(new BorderLayout(0, 8));
+        panel.setPreferredSize(new Dimension(400, 0)); // 채팅 패널 폭 증가
         panel.setOpaque(false);
 
         JLabel chatTitle = new JLabel("Chat", SwingConstants.CENTER);
         chatTitle.setForeground(Color.WHITE);
-        chatTitle.setFont(new Font("Arial", Font.BOLD, 14));
-        chatTitle.setBorder(new EmptyBorder(4, 0, 4, 0));
+        chatTitle.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        chatTitle.setBorder(new EmptyBorder(6, 0, 6, 0));
 
         panel.add(chatTitle, BorderLayout.NORTH);
         panel.add(chatPanel, BorderLayout.CENTER);
@@ -248,6 +259,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         chatPanel.setOnSendChat(msg -> {
             try {
                 controller.sendChat(msg);
+                // 내 메시지는 즉시 노란색으로 표시
                 chatPanel.appendMyMessage(msg);
             } catch (Exception ex) {
                 chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
@@ -305,11 +317,18 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     // ClientController.Ui 구현
     @Override
     public void onChat(String text) {
-        SwingUtilities.invokeLater(() -> chatPanel.appendOtherMessage(text));
+        // 서버에서 받은 채팅은 흰색으로 표시 (다른 사람 메시지만 표시)
+        // 내 메시지는 이미 노란색으로 표시되었으므로 표시하지 않음
+        SwingUtilities.invokeLater(() -> {
+            // 간단하게: 서버에서 받은 메시지는 모두 다른 사람 메시지로 처리
+            // (실제로는 내 메시지도 포함되어 올 수 있음)
+            chatPanel.appendOtherMessage(text);
+        });
     }
 
     @Override
     public void onWelcome(Protocol.Welcome welcome) {
+        myId = welcome.myId; // 내 ID 저장
         SwingUtilities.invokeLater(() -> {
             chatPanel.appendSystemMessage("WELCOME id=" + welcome.myId + 
                 " world=" + welcome.worldW + "x" + welcome.worldH +

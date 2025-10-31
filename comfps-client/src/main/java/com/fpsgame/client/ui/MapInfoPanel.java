@@ -50,12 +50,14 @@ public class MapInfoPanel extends JPanel {
         // 맵 이름
         JLabel nameLabel = new JLabel(getMapName(mapId), SwingConstants.CENTER);
         nameLabel.setForeground(Color.WHITE);
-        nameLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        nameLabel.setFont(new Font("맑은 고딕", Font.BOLD, 20));
 
         // 맵 이미지
         JLabel imageLabel = new JLabel();
         imageLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        imageLabel.setPreferredSize(new Dimension(300, 180));
+        imageLabel.setPreferredSize(new Dimension(350, 220));
+        imageLabel.setBackground(new Color(0x1a1d24));
+        imageLabel.setOpaque(true);
         loadMapImage(mapId, imageLabel);
 
         // 맵 설명
@@ -63,10 +65,10 @@ public class MapInfoPanel extends JPanel {
         descArea.setEditable(false);
         descArea.setOpaque(false);
         descArea.setForeground(new Color(0xcccccc));
-        descArea.setFont(new Font("Arial", Font.PLAIN, 13));
+        descArea.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
         descArea.setLineWrap(true);
         descArea.setWrapStyleWord(true);
-        descArea.setBorder(new EmptyBorder(8, 0, 0, 0));
+        descArea.setBorder(new EmptyBorder(10, 0, 0, 0));
 
         card.add(nameLabel, BorderLayout.NORTH);
         card.add(imageLabel, BorderLayout.CENTER);
