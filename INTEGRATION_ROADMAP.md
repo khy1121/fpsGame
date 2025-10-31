@@ -478,8 +478,8 @@ PHASE 2 (테스트) → PHASE 3 (테스트) → PHASE 4 (테스트) → ...
 - [x] 팀 선택 시 READY 상태 잠금
 
 ### 진행 중인 작업
-- [ ] PHASE 1: 코드 정리
-- [ ] PHASE 2: ClientController 확장
+- [x] PHASE 1: 코드 정리
+- [x] PHASE 2: ClientController 확장
 - [ ] PHASE 3: 서버 연동
 - [ ] PHASE 4: 맵 투표
 - [ ] PHASE 5: 캐릭터 선택

@@ -145,6 +145,35 @@ public class ClientController {
         }
     }
 
+    /** 
+     * Send team selection to server (PHASE 2).
+     * @param team Team ID (0=RED, 1=BLUE)
+     */
+    public void sendTeamSelection(int team) {
+        NetClient n = ensureConnected();
+        try {
+            // Send with character=-1 to indicate team-only selection
+            n.sendSetSelection(team, -1);
+        } catch (IOException e) {
+            notifyDisconnected("send error: " + e.getMessage());
+        }
+    }
+
+    /** 
+     * Send character selection to server (PHASE 2).
+     * @param charId Character ID
+     */
+    public void sendCharacterSelection(int charId) {
+        NetClient n = ensureConnected();
+        try {
+            // Send with team=-1 to indicate character-only selection
+            // Server will use player's current team
+            n.sendSetSelection(-1, charId);
+        } catch (IOException e) {
+            notifyDisconnected("send error: " + e.getMessage());
+        }
+    }
+
     /** ClientController (ASCII comments). */
     public void sendMapVote(int mapId) {
         NetClient n = ensureConnected();
