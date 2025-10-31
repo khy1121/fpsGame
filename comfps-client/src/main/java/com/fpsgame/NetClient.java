@@ -188,7 +188,7 @@ public class NetClient implements Closeable {
         }
     }
 
-    /** INPUT 전송: 마스크 + (선택) 조준각도 */
+    /** Send simple input mask + optional aim. */
     public void sendInputMask(byte mask, java.lang.Float aimNullable) throws IOException {
         DataOutputStream o = ensureOut();
         byte[] payload;
@@ -202,6 +202,12 @@ public class NetClient implements Closeable {
             };
         }
         synchronized (o) { Protocol.writeFrame(o, Protocol.Opcode.INPUT, payload); }
+    }
+
+    /** Send action (0=BasicAttack, 1=TacticalAbility, 2=UltimateAbility) */
+    public void sendAction(int actionType) throws IOException {
+        DataOutputStream o = ensureOut();
+        synchronized (o) { Protocol.sendAction(o, actionType); }
     }
 
     // 수신 루프 ---------------------------------------------------------

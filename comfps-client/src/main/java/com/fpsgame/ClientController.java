@@ -203,6 +203,16 @@ public class ClientController {
         }
     }
 
+    /** Send action (0=BasicAttack, 1=TacticalAbility, 2=UltimateAbility) */
+    public void sendAction(int actionType) {
+        NetClient n = ensureConnected();
+        try {
+            n.sendAction(actionType);
+        } catch (IOException e) {
+            notifyDisconnected("send error: " + e.getMessage());
+        }
+    }
+
     /** ClientController (ASCII comments). */
     public void sendPingOnce() {
         NetClient n = ensureConnected();

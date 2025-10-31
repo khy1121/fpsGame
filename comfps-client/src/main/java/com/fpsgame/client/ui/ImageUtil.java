@@ -1,11 +1,13 @@
 package com.fpsgame.client.ui;
 
-import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+
+import javax.imageio.ImageIO;
 
 /** 간단 이미지 유틸리티(리소스/파일 로드, 스케일, 흰색 투명 처리). */
 public final class ImageUtil {
@@ -19,9 +21,19 @@ public final class ImageUtil {
     public static BufferedImage loadResource(Class<?> base, String resourcePath) {
         if (resourcePath == null || resourcePath.isBlank()) return null;
         try (InputStream in = base.getResourceAsStream(resourcePath)) {
-            if (in == null) return null;
-            return ImageIO.read(in);
-        } catch (IOException ignore) { return null; }
+            if (in == null) {
+                System.err.println("Resource not found: " + resourcePath + " (from " + base.getName() + ")");
+                return null;
+            }
+            BufferedImage img = ImageIO.read(in);
+            if (img != null) {
+                System.out.println("Loaded resource: " + resourcePath + " (" + img.getWidth() + "x" + img.getHeight() + ")");
+            }
+            return img;
+        } catch (IOException e) {
+            System.err.println("Failed to load resource: " + resourcePath + " - " + e.getMessage());
+            return null;
+        }
     }
 
     public static BufferedImage scale(BufferedImage src, int w, int h) {

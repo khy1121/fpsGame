@@ -39,6 +39,7 @@ public final class Protocol {
         // 게임플레이
         public static final byte INPUT         = 0x30;
         public static final byte SNAPSHOT      = 0x31;
+        public static final byte ACTION        = 0x33; // 액션(발사, 스킬 사용 등)
     }
 
     // 공개 별칭 (레거시 코드에서 직접 접근)
@@ -56,6 +57,7 @@ public final class Protocol {
     public static final byte INPUT         = Opcode.INPUT;
     public static final byte SNAPSHOT      = Opcode.SNAPSHOT;
     public static final byte READY_STATUS  = Opcode.READY_STATUS;
+    public static final byte ACTION        = Opcode.ACTION;
     // extension channel (server->client broadcast of projectiles)
     public static final byte PROJECTILES   = (byte)0x32;
 
@@ -247,6 +249,15 @@ public final class Protocol {
         
         return new ReadyStatus(ready, total, players);
     }
+
+    // ACTION helpers: [byte actionType][optional params...]
+    // actionType: 0=BasicAttack, 1=TacticalAbility, 2=UltimateAbility
+    public static void sendAction(DataOutput out, int actionType) throws IOException {
+        ByteArrayOutputStream baos=new ByteArrayOutputStream(1);
+        putByte(baos, actionType);
+        writeFrame(out, Opcode.ACTION, baos.toByteArray());
+    }
+    public static int parseAction(byte[] p){ return (p!=null && p.length>0) ? getU8(p,0) : -1; }
 
     // Safe sender
     public static final class SafeSender {

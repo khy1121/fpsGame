@@ -1,6 +1,11 @@
 package com.fpsgame.common;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -34,6 +39,7 @@ public final class Protocol {
         // 게임플레이
         public static final byte INPUT         = 0x30;
         public static final byte SNAPSHOT      = 0x31;
+        public static final byte ACTION        = 0x33; // 액션(발사, 스킬 사용 등)
     }
 
     // 공개 별칭 (레거시 코드에서 직접 접근)
@@ -51,6 +57,7 @@ public final class Protocol {
     public static final byte INPUT         = Opcode.INPUT;
     public static final byte SNAPSHOT      = Opcode.SNAPSHOT;
     public static final byte READY_STATUS  = Opcode.READY_STATUS;
+    public static final byte ACTION        = Opcode.ACTION;
     // extension channel (server->client broadcast of projectiles)
     public static final byte PROJECTILES   = (byte)0x32;
 
@@ -148,6 +155,15 @@ public final class Protocol {
     public static byte[] buildReadyStatusPayload(int ready, int total){ ByteArrayOutputStream baos=new ByteArrayOutputStream(2); putByte(baos, Math.max(0, ready)); putByte(baos, Math.max(0, total)); return baos.toByteArray(); }
     public static final class ReadyStatus { public final int ready, total; public ReadyStatus(int r,int t){ ready=r; total=t; } }
     public static ReadyStatus parseReadyStatus(byte[] p){ return new ReadyStatus(getU8(p,0), getU8(p,1)); }
+
+    // ACTION helpers: [byte actionType][optional params...]
+    // actionType: 0=BasicAttack, 1=TacticalAbility, 2=UltimateAbility
+    public static void sendAction(DataOutput out, int actionType) throws IOException {
+        ByteArrayOutputStream baos=new ByteArrayOutputStream(1);
+        putByte(baos, actionType);
+        writeFrame(out, Opcode.ACTION, baos.toByteArray());
+    }
+    public static int parseAction(byte[] p){ return (p!=null && p.length>0) ? getU8(p,0) : -1; }
 
     // Safe sender
     public static final class SafeSender {

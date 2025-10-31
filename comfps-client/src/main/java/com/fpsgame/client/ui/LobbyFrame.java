@@ -162,6 +162,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 // ignore transient send errors; connection state will handle
             }
         });
+        // Bind action sender for attacks/skills
+        gamePanel.setActionSender(actionType -> {
+            try {
+                controller.sendAction(actionType);
+            } catch (Exception ex) {
+                // ignore transient send errors
+            }
+        });
         panel.add(gamePanel, BorderLayout.CENTER);
         return panel;
     }
@@ -523,6 +531,9 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             if (gamePanel != null) {
                 gamePanel.setWorldSize(welcome.worldW, welcome.worldH);
                 gamePanel.setMyId(welcome.myId);
+                if (welcome.mapId >= 0) {
+                    gamePanel.setMapId(welcome.mapId);
+                }
             }
         });
     }
