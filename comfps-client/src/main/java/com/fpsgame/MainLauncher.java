@@ -116,14 +116,14 @@ public final class MainLauncher extends JFrame {
         // 타이틀
         gbc.gridy = 0;
         JLabel titleLabel = new JLabel("FPS GAME");
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        titleLabel.setFont(new Font("맑은 고딕", Font.BOLD, 48));
         titleLabel.setForeground(new Color(0xffd700)); // 골드
         mainPanel.add(titleLabel, gbc);
 
         // 버전
         gbc.gridy = 1;
         JLabel versionLabel = new JLabel("v1.0.0");
-        versionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        versionLabel.setFont(new Font("맑은 고딕", Font.PLAIN, 14));
         versionLabel.setForeground(new Color(0x999999));
         mainPanel.add(versionLabel, gbc);
 
@@ -134,14 +134,14 @@ public final class MainLauncher extends JFrame {
         // 닉네임 라벨
         gbc.gridy = 3;
         JLabel nicknameLabel = new JLabel("닉네임");
-        nicknameLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        nicknameLabel.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         nicknameLabel.setForeground(Color.WHITE);
         mainPanel.add(nicknameLabel, gbc);
 
         // 닉네임 입력 필드
         gbc.gridy = 4;
         nicknameField.setPreferredSize(new Dimension(260, 40));
-        nicknameField.setFont(new Font("Arial", Font.PLAIN, 16));
+        nicknameField.setFont(new Font("맑은 고딕", Font.PLAIN, 16));
         nicknameField.setHorizontalAlignment(JTextField.CENTER);
         nicknameField.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(0x3a3f47), 2),
@@ -173,6 +173,10 @@ public final class MainLauncher extends JFrame {
     }
 
     private JButton createStyledButton(String text, Color bgColor, Color hoverColor) {
+        // 흰색 배경 쪽으로 톤을 올려 검정 글씨 대비 확보
+        final Color baseFill = lighten(bgColor, 0.40);
+        final Color hoverFill = lighten(hoverColor, 0.30);
+
         JButton button = new JButton(text) {
             private boolean isHovered = false;
 
@@ -180,12 +184,13 @@ public final class MainLauncher extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g;
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-                Color currentColor = isHovered ? hoverColor : bgColor;
+                Color currentColor = isHovered ? hoverFill : baseFill;
                 g2.setColor(currentColor);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
 
-                g2.setColor(Color.WHITE);
+                g2.setColor(Color.BLACK); // 한글 검정 글씨
                 g2.setFont(getFont());
                 FontMetrics fm = g2.getFontMetrics();
                 int x = (getWidth() - fm.stringWidth(getText())) / 2;
@@ -202,7 +207,8 @@ public final class MainLauncher extends JFrame {
         button.setContentAreaFilled(false);
         button.setBorderPainted(false);
         button.setFocusPainted(false);
-        button.setFont(new Font("Arial", Font.BOLD, 16));
+    // 한글 가독성 좋은 폰트 사용
+    button.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         // Hover effect
@@ -229,6 +235,15 @@ public final class MainLauncher extends JFrame {
         });
 
         return button;
+    }
+
+    /** 원색을 흰색 쪽으로 f(0~1)만큼 보간하여 밝게 만든다. */
+    private static Color lighten(Color c, double f) {
+        f = Math.max(0.0, Math.min(1.0, f));
+        int r = (int)Math.round(c.getRed()   + (255 - c.getRed())   * f);
+        int g = (int)Math.round(c.getGreen() + (255 - c.getGreen()) * f);
+        int b = (int)Math.round(c.getBlue()  + (255 - c.getBlue())  * f);
+        return new Color(r, g, b);
     }
 
     private void startGame() {
