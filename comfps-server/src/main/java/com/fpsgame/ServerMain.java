@@ -22,6 +22,7 @@ public final class ServerMain {
         // 투표 완료 규칙: 전체 투표 또는 타임아웃
         private volatile long voteDeadlineMs = 0L;
         private volatile int voteExpected = 0;
+        private volatile boolean voteDecided = false; // 맵 결정 완료 플래그
 
         LobbyHooks(SessionRegistry registry, GameServer gameServer) {
             this.registry = registry;
@@ -121,6 +122,7 @@ public final class ServerMain {
             } catch (Throwable ignore) {}
             this.voteExpected = total;
             this.voteDeadlineMs = System.currentTimeMillis() + 10_000L; // 10초 타이머
+            this.voteDecided = false; // 투표 잠금 해제
 
             registry.log("[PHASE] Enter VOTE: expectedVotes=" + voteExpected + " deadlineMs=" + voteDeadlineMs);
             try {
@@ -167,10 +169,16 @@ public final class ServerMain {
 
         @Override
         public void registerMapVote(int sessionId, int mapId) {
+            // 이미 맵이 결정되었으면 추가 투표 거부
+            if (voteDecided) {
+                registry.log("[VOTE] Rejected vote from sid=" + sessionId + " (already decided)");
+                return;
+            }
+
             // GameServer를 통한 맵 투표 처리
             com.fpsgame.common.GameEnums.MapId mapEnum = convertMapId(mapId);
             gameServer.voteMap(sessionId, mapEnum);
-            registry.log("[AGGREGATE] VOTE sid=" + sessionId + " map=" + mapId + " (votes=" + voteManager.voterCount() + ")");
+            registry.log("[AGGREGATE] VOTE sid=" + sessionId + " map=" + mapId + " (votes=" + gameServer.voterCount() + ")");
             
             // 완료 조건 검사: 전원 투표 또는 타임아웃 경과
             boolean allVoted = false;
@@ -255,7 +263,14 @@ public final class ServerMain {
             }, "VoteDeadlineTimer").start();
         }
 
-        private void decideAndBroadcastMap() {
+        private synchronized void decideAndBroadcastMap() {
+            // 중복 실행 방지
+            if (voteDecided) {
+                registry.log("[DECIDE] Already decided, skipping duplicate call");
+                return;
+            }
+            voteDecided = true; // 잠금
+
             com.fpsgame.common.GameEnums.MapId winnerMap = gameServer.currentVoteWinner();
             int winner = winnerMap.ordinal();
             int[] wh = dimsForMap(winner);
@@ -271,6 +286,15 @@ public final class ServerMain {
                 registry.log("[BC] Map selection broadcast sent");
             } catch (Throwable t) {
                 registry.log("[ERROR] Map selection broadcast failed: " + t);
+            }
+
+            // VOTE → COUNTDOWN Phase 전환
+            try {
+                registry.broadcastPhaseUpdate(com.fpsgame.common.GameEnums.Phase.COUNTDOWN.ordinal());
+                registry.broadcastSystemChat("[PHASE] 카운트다운을 시작합니다!");
+                registry.log("[PHASE] Transitioned to COUNTDOWN");
+            } catch (Throwable t) {
+                registry.log("[ERROR] Phase transition to COUNTDOWN failed: " + t);
             }
         }
     }
