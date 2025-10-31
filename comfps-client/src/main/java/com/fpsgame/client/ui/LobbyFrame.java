@@ -304,6 +304,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         }
         
         selectedTeam = team;
+        
+        // 서버로 팀 선택 전송 (PHASE 3.2)
+        try {
+            controller.sendTeamSelection(team);
+            chatPanel.appendSystemMessage("팀 선택: " + (team == 0 ? "RED" : "BLUE"));
+        } catch (Exception ex) {
+            chatPanel.appendSystemMessage("팀 선택 전송 실패: " + ex.getMessage());
+        }
+        
         if (team == 0) {
             // RED 선택: 금색 굵은 테두리, 빨강 배경 유지
             redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
@@ -451,7 +460,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onReadyStatus(int ready, int total) {
         SwingUtilities.invokeLater(() -> {
-            chatPanel.appendSystemMessage("READY_STATUS " + ready + "/" + total);
+            // PHASE 3.1: 더 상세한 READY 상태 표시
+            chatPanel.appendSystemMessage("=============================");
+            chatPanel.appendSystemMessage("  준비 완료: " + ready + " / " + total + " 명");
+            if (ready == total && total > 0) {
+                chatPanel.appendSystemMessage("  🎮 모든 플레이어 준비 완료!");
+            } else if (ready > 0) {
+                chatPanel.appendSystemMessage("  ⏳ " + (total - ready) + "명 대기 중...");
+            }
+            chatPanel.appendSystemMessage("=============================");
         });
     }
 
