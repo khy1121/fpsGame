@@ -60,6 +60,9 @@ public class ServerSession implements Closeable {
         if (running) return;
         try {
             socket.setTcpNoDelay(true);
+            // Set SO_TIMEOUT for read operations (60 seconds idle timeout)
+            // This prevents hanging forever if client becomes unresponsive
+            socket.setSoTimeout(60000);
         } catch (Exception ignore) { /* May fail on some platforms - ignore */ }
 
         this.in = new DataInputStream(socket.getInputStream());
@@ -126,6 +129,9 @@ public class ServerSession implements Closeable {
                 }
                 router.route(serverContext, sessionId, frame);
             }
+        } catch (java.net.SocketTimeoutException timeout) {
+            // Client idle for 60 seconds - close connection
+            serverContext.log("Session " + sessionId + " timed out (60s idle)");
         } catch (EOFException | SocketException eof) {
             // Remote disconnect or socket error - treat as normal termination
             serverContext.log("Session " + sessionId + " disconnected: " + eof.getMessage());

@@ -20,6 +20,7 @@ public class HudPanel extends JPanel {
     private final JLabel scoreLabel = new JLabel("Score 0 : 0");
     private final JLabel readyLabel = new JLabel("Ready 0/0");
     private final JLabel messageLabel = new JLabel("");
+    private final JLabel connectionLabel = new JLabel("● Disconnected");
 
     // 하단 정보 라인
     private final JLabel worldLabel = new JLabel("World: -");
@@ -37,10 +38,12 @@ public class HudPanel extends JPanel {
         scoreLabel.setForeground(new Color(200, 255, 200));
         readyLabel.setForeground(new Color(200, 220, 255));
         messageLabel.setForeground(new Color(255, 190, 190));
+        connectionLabel.setForeground(new Color(255, 100, 100)); // 빨간색 (연결 끊김)
 
         phaseLabel.setFont(phaseLabel.getFont().deriveFont(Font.BOLD, 14f));
         countdownLabel.setFont(countdownLabel.getFont().deriveFont(Font.BOLD, 14f));
         scoreLabel.setFont(scoreLabel.getFont().deriveFont(Font.BOLD, 14f));
+        connectionLabel.setFont(connectionLabel.getFont().deriveFont(Font.BOLD, 13f));
         worldLabel.setFont(worldLabel.getFont().deriveFont(Font.PLAIN, 13f));
         mapLabel.setFont(mapLabel.getFont().deriveFont(Font.PLAIN, 13f));
         messageLabel.setFont(messageLabel.getFont().deriveFont(Font.BOLD, 14f));
@@ -58,9 +61,10 @@ public class HudPanel extends JPanel {
 
         // 2행: 월드/맵/능력 상태 표시
         c.gridy = 1; c.weightx = 0; c.fill = GridBagConstraints.NONE;
-        c.gridx = 0; add(worldLabel, c);
-        c.gridx = 1; add(mapLabel, c);
-        c.gridx = 2; c.gridwidth = 3; add(statusLabel, c);
+        c.gridx = 0; add(connectionLabel, c); // 연결 상태 표시
+        c.gridx = 1; add(worldLabel, c);
+        c.gridx = 2; add(mapLabel, c);
+        c.gridx = 3; c.gridwidth = 2; add(statusLabel, c);
         c.gridwidth = 1;
     }
 
@@ -124,6 +128,32 @@ public class HudPanel extends JPanel {
         dispatchEdt(() -> readyLabel.setText("Ready: " + Math.max(0, ready) + "/" + Math.max(0, total)));
     }
 
+    // ===== 공개 API: 연결 상태 =====
+
+    /** 연결됨 상태로 변경 (녹색) */
+    public void setConnected() {
+        dispatchEdt(() -> {
+            connectionLabel.setText("● Connected");
+            connectionLabel.setForeground(new Color(100, 255, 100)); // 녹색
+        });
+    }
+
+    /** 연결 끊김 상태로 변경 (빨간색) */
+    public void setDisconnected() {
+        dispatchEdt(() -> {
+            connectionLabel.setText("● Disconnected");
+            connectionLabel.setForeground(new Color(255, 100, 100)); // 빨간색
+        });
+    }
+
+    /** 재연결 시도 중 상태로 변경 (노란색) */
+    public void setReconnecting() {
+        dispatchEdt(() -> {
+            connectionLabel.setText("● Reconnecting...");
+            connectionLabel.setForeground(new Color(255, 220, 100)); // 노란색
+        });
+    }
+
     // ===== 공개 API: 능력/상태 =====
 
     public void setCoverStance(boolean active) { dispatchEdt(() -> rewriteStatus(active, null, null)); }
@@ -152,9 +182,19 @@ public class HudPanel extends JPanel {
     /** 어댑터: NetClient 이벤트를 HUD 갱신에 매핑 */
     public NetClient.Listener asListener(NetClient.Listener delegate) {
         return new NetClient.Listener() {
-            @Override public void onOpen(NetClient c) { if (delegate != null) delegate.onOpen(c); }
-            @Override public void onClosed(NetClient c, String reason) { if (delegate != null) delegate.onClosed(c, reason); }
-            @Override public void onDisconnected(String reason) { if (delegate != null) delegate.onDisconnected(reason); }
+            @Override public void onOpen(NetClient c) { 
+                setConnected(); // 연결됨 상태로 변경
+                if (delegate != null) delegate.onOpen(c); 
+            }
+            @Override public void onClosed(NetClient c, String reason) { 
+                setDisconnected(); // 연결 끊김 상태로 변경
+                if (delegate != null) delegate.onClosed(c, reason); 
+            }
+            @Override public void onDisconnected(String reason) { 
+                setDisconnected(); // 연결 끊김 상태로 변경
+                setSystemMessage("Disconnected: " + reason); // 시스템 메시지 표시
+                if (delegate != null) delegate.onDisconnected(reason); 
+            }
             @Override public void onChat(String text) { if (delegate != null) delegate.onChat(text); }
             @Override public void onFrame(NetClient c, Protocol.Frame frame) {
                 if (frame == null) { if (delegate != null) delegate.onFrame(c, frame); return; }
