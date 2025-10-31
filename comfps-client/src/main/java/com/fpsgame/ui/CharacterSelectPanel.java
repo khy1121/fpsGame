@@ -1,14 +1,31 @@
 package com.fpsgame.client.ui;
 
-import com.fpsgame.common.GameEnums;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
+
+import com.fpsgame.common.GameEnums;
 
 /**
  * 캐릭터 선택 패널(경량)
@@ -183,21 +200,21 @@ public class CharacterSelectPanel extends JPanel {
         return sb.toString().replace('_', ' ').replace('-', ' ');
     }
 
-    // 간단 설명 더미(필요 시 외부에서 setCharacters와 함께 교체 가능)
+    // CHARACTER_SPECS.md 기반 캐릭터 설명
     private static String defaultDescription(String id) {
         if (id == null) return "";
         String key = id.toLowerCase();
         return switch (key) {
-            case "sage" -> "지원형: 회복/보조에 강점";
-            case "piper" -> "정찰형: 시야/표식";
-            case "technician" -> "공학: 유틸리티 장비";
-            case "general" -> "밸런스형";
-            case "bulldog" -> "화력: 미니건/압박";
-            case "wildcat" -> "기동력/근접";
-            case "raven" -> "기동/돌파";
-            case "ghost" -> "은신/기만";
-            case "skull" -> "공포/디버프";
-            case "steam" -> "연막/제어";
+            case "raven" -> "돌격형 | Basic: 빠른 속도 | Tactical: 시야 가리기 | Ultimate: 순간이동";
+            case "piper" -> "정찰형 | Basic: 장거리 정밀 공격 | Tactical: 적 위치 표시 | Ultimate: 적 무력화";
+            case "bulldog" -> "중화기 | Basic: 미니건 제압사격 | Tactical: 탄약 재장전 | Ultimate: 집중 화력";
+            case "sage" -> "지원형 | Basic: 회복 기술 | Tactical: 방어막 | Ultimate: 회복 영역";
+            case "ghost" -> "암살형 | Basic: 은신 | Tactical: 환영 생성 | Ultimate: 무음 이동";
+            case "wildcat" -> "근접형 | Basic: 빠른 근접 공격 | Tactical: 돌진 | Ultimate: 광폭화";
+            case "technician" -> "공학형 | Basic: 터렛 설치 | Tactical: 원격 해킹 | Ultimate: EMP 폭파";
+            case "general" -> "전술가 | Basic: 밸런스 공격 | Tactical: 전술 명령 | Ultimate: 폭격 요청";
+            case "steam" -> "연막형 | Basic: 연막탄 | Tactical: 시야 차단 | Ultimate: 독가스";
+            case "skull" -> "공포형 | Basic: 적 두려움 | Tactical: 디버프 | Ultimate: 대규모 공포";
             default -> "캐릭터 설명이 표시됩니다.";
         };
     }

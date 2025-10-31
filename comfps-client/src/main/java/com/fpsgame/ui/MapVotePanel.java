@@ -1,12 +1,28 @@
 package com.fpsgame.client.ui;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.border.EmptyBorder;
 
 /**
  * 맵 투표 패널(경량)
@@ -94,7 +110,13 @@ public class MapVotePanel extends JPanel {
         name.setForeground(new Color(235, 235, 235));
         name.setFont(name.getFont().deriveFont(Font.BOLD, 14f));
 
-        JTextArea desc = new JTextArea("맵 설명이 표시됩니다.");
+        // 맵 이미지 로드
+        JLabel image = new JLabel();
+        image.setHorizontalAlignment(SwingConstants.CENTER);
+        image.setOpaque(false);
+        loadMapImage(mapId, image, 200, 120);
+
+        JTextArea desc = new JTextArea(getMapDescription(mapId));
         desc.setEditable(false);
         desc.setOpaque(false);
         desc.setForeground(new Color(180, 180, 180));
@@ -107,7 +129,11 @@ public class MapVotePanel extends JPanel {
         vote.addActionListener(e -> sendVote(mapId));
 
         card.add(name, BorderLayout.NORTH);
-        card.add(desc, BorderLayout.CENTER);
+        JPanel center = new JPanel(new BorderLayout());
+        center.setOpaque(false);
+        center.add(image, BorderLayout.CENTER);
+        center.add(desc, BorderLayout.SOUTH);
+        card.add(center, BorderLayout.CENTER);
         JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         south.setOpaque(false);
         south.add(vote);
@@ -119,6 +145,37 @@ public class MapVotePanel extends JPanel {
             @Override public void mouseClicked(java.awt.event.MouseEvent e) { sendVote(mapId); }
         });
         return card;
+    }
+
+    // CHARACTER_SPECS.md 기반 맵 설명
+    private static String getMapDescription(String mapId) {
+        if (mapId == null) return "맵 설명이 표시됩니다.";
+        String key = mapId.toLowerCase();
+        return switch (key) {
+            case "terminal" -> "도시 공항 | 좁은 복도와 개방된 광장 | 밸런스형 전투";
+            case "neoncity" -> "사이버펑크 도시 | 수직 레벨과 네온 거리 | 기동력 중시";
+            case "forestoutpost" -> "숲속 요새 | 자연 엄폐와 벙커 | 전술적 플레이";
+            default -> "맵 설명이 표시됩니다.";
+        };
+    }
+
+    // 맵 이미지 로더
+    private static void loadMapImage(String id, JLabel target, int w, int h) {
+        if (target == null) return;
+        String base = id == null ? "" : id.trim();
+        java.awt.image.BufferedImage img = null;
+        // 1) 프로젝트 로컬 assets 경로 우선
+        img = ImageUtil.loadFile("assets/maps/" + base + ".png");
+        if (img == null) img = ImageUtil.loadFile("assets/maps/" + base + ".jpg");
+        // 2) 클래스패스 리소스
+        if (img == null) img = ImageUtil.loadResource(MapVotePanel.class, "/assets/maps/" + base + ".png");
+        if (img == null) img = ImageUtil.loadResource(MapVotePanel.class, "/assets/maps/" + base + ".jpg");
+        if (img != null) {
+            img = ImageUtil.scale(img, w, h);
+            target.setIcon(new ImageIcon(img));
+        } else {
+            target.setText("No Image");
+        }
     }
 
     private void sendVote(String mapId) {
