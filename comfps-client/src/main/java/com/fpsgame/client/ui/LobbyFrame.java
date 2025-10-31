@@ -157,6 +157,17 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 chatPanel.appendSystemMessage("맵 투표 실패: " + ex.getMessage());
             }
         });
+        
+        // PHASE 5: 캐릭터 선택 콜백 설정
+        charSelectPanel.onSendSelection(charId -> {
+            try {
+                int charIdInt = charIdToInt(charId);
+                controller.sendCharacterSelection(charIdInt);
+                chatPanel.appendSystemMessage("캐릭터 선택: " + charId + " (ID: " + charIdInt + ")");
+            } catch (Exception ex) {
+                chatPanel.appendSystemMessage("캐릭터 선택 실패: " + ex.getMessage());
+            }
+        });
 
         panel.add(tabbedPane, BorderLayout.NORTH);
 
@@ -426,6 +437,27 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             case "terminal" -> 0;
             case "neoncity" -> 1;
             case "forestoutpost" -> 2;
+            default -> 0;
+        };
+    }
+    
+    /**
+     * 캐릭터 ID 문자열을 정수로 변환 (PHASE 5)
+     * @param charId 캐릭터 ID 문자열 (예: "Sage", "Piper", ...)
+     * @return 캐릭터 ID 정수 (0-9)
+     */
+    private int charIdToInt(String charId) {
+        return switch (charId) {
+            case "Sage" -> 0;
+            case "Piper" -> 1;
+            case "Technician" -> 2;
+            case "General" -> 3;
+            case "Bulldog" -> 4;
+            case "Wildcat" -> 5;
+            case "Raven" -> 6;
+            case "Ghost" -> 7;
+            case "Skull" -> 8;
+            case "Steam" -> 9;
             default -> 0;
         };
     }
