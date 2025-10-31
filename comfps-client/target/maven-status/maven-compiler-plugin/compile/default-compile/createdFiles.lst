@@ -125,6 +125,7 @@ com\fpsgame\client\ui\FpsOverlayPanel.class
 com\fpsgame\client\ui\JoinDialog$Result.class
 com\fpsgame\client\MainClient.class
 com\fpsgame\client\ClientToolsMain$1.class
+com\fpsgame\client\ui\MapInfoPanel$1.class
 com\fpsgame\client\ui\RoundResultOverlayBinder.class
 com\fpsgame\client\model\ClientPhaseModel.class
 com\fpsgame\client\net\PhaseFrameAdapter.class

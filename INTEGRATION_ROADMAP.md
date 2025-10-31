@@ -481,7 +481,7 @@ PHASE 2 (테스트) → PHASE 3 (테스트) → PHASE 4 (테스트) → ...
 - [x] PHASE 1: 코드 정리
 - [x] PHASE 2: ClientController 확장
 - [x] PHASE 3: 서버 연동
-- [ ] PHASE 4: 맵 투표
+- [x] PHASE 4: 맵 투표
 - [ ] PHASE 5: 캐릭터 선택
 - [ ] PHASE 6: Phase 시스템
 - [ ] PHASE 7: 게임 화면 연결

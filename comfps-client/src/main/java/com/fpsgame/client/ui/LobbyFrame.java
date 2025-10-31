@@ -146,6 +146,17 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         tabbedPane.setFont(new Font("맑은 고딕", Font.BOLD, 14));
         tabbedPane.addTab("Map Info", mapInfoPanel);
         tabbedPane.addTab("Character Select", charSelectPanel);
+        
+        // PHASE 4: 맵 투표 콜백 설정
+        mapInfoPanel.setOnMapSelected(mapId -> {
+            try {
+                int mapIdInt = mapIdToInt(mapId);
+                controller.sendMapVote(mapIdInt);
+                chatPanel.appendSystemMessage("맵 투표: " + mapId + " (ID: " + mapIdInt + ")");
+            } catch (Exception ex) {
+                chatPanel.appendSystemMessage("맵 투표 실패: " + ex.getMessage());
+            }
+        });
 
         panel.add(tabbedPane, BorderLayout.NORTH);
 
@@ -403,6 +414,20 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         } catch (Exception ignore) {}
 
         dispose();
+    }
+    
+    /**
+     * 맵 ID 문자열을 정수로 변환 (PHASE 4)
+     * @param mapId 맵 ID 문자열 (예: "terminal", "neonCity", "forestOutpost")
+     * @return 맵 ID 정수 (0, 1, 2)
+     */
+    private int mapIdToInt(String mapId) {
+        return switch (mapId.toLowerCase()) {
+            case "terminal" -> 0;
+            case "neoncity" -> 1;
+            case "forestoutpost" -> 2;
+            default -> 0;
+        };
     }
 
     // ClientController.Ui 구현

@@ -5,7 +5,10 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
+import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -19,11 +22,15 @@ import javax.swing.border.EmptyBorder;
  * 맵 정보 패널
  * - 3개 맵 카드 표시 (terminal, neonCity, forestOutpost)
  * - 그리드 레이아웃
+ * - 클릭하여 맵 투표 가능 (PHASE 4)
  */
 public class MapInfoPanel extends JPanel {
 
     private final String[] mapIds = {"terminal", "neonCity", "forestOutpost"};
     private final JPanel gridPanel = new JPanel(new GridLayout(1, 3, 16, 16));
+    
+    // PHASE 4: 맵 선택 콜백
+    private Consumer<String> onMapSelected;
 
     public MapInfoPanel() {
         setLayout(new BorderLayout());
@@ -38,6 +45,14 @@ public class MapInfoPanel extends JPanel {
 
         add(gridPanel, BorderLayout.CENTER);
     }
+    
+    /**
+     * 맵 선택 콜백 설정 (PHASE 4)
+     * @param callback 맵 ID를 받는 콜백
+     */
+    public void setOnMapSelected(Consumer<String> callback) {
+        this.onMapSelected = callback;
+    }
 
     private JPanel buildMapCard(String mapId) {
         JPanel card = new JPanel(new BorderLayout(8, 8));
@@ -46,6 +61,34 @@ public class MapInfoPanel extends JPanel {
             BorderFactory.createLineBorder(new Color(0x3a3f47), 2),
             new EmptyBorder(12, 12, 12, 12)
         ));
+        
+        // PHASE 4: 클릭 이벤트 추가
+        card.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (onMapSelected != null) {
+                    onMapSelected.accept(mapId);
+                }
+            }
+            
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                // 마우스 오버 시 하이라이트
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(0xffd700), 3),
+                    new EmptyBorder(12, 12, 12, 12)
+                ));
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                // 마우스 나갈 때 원래대로
+                card.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(0x3a3f47), 2),
+                    new EmptyBorder(12, 12, 12, 12)
+                ));
+            }
+        });
 
         // 맵 이름
         JLabel nameLabel = new JLabel(getMapName(mapId), SwingConstants.CENTER);
