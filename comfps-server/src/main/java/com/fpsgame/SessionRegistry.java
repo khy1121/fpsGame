@@ -372,6 +372,12 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
         if (ss != null) { try { ss.onInputFrame(sessionId, payload); } catch (Throwable ignore) {} }
     }
 
+    /** 현재 세션의 조준 각도(라디안)를 조회(없으면 0). */
+    public float getAimAngle(int sessionId) {
+        PlayerSyncService ss = syncService;
+        return (ss != null) ? ss.getAimAngle(sessionId) : 0f;
+    }
+
     // Welcome helpers
     public void sendWelcomeTo(int sessionId, int team, int character) {
         log("[sendWelcomeTo] START sid=" + sessionId + " team=" + team + " char=" + character);

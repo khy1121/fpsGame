@@ -270,6 +270,46 @@ public final class ServerMain {
             return gameServer.getPhase();
         }
 
+        @Override
+        public void onInputFrame(int sessionId, byte[] payload) {
+            // INPUT 프레임을 PlayerSyncService로 전달 (SessionRegistry 경유)
+            try {
+                if (registry != null) {
+                    registry.handleInput(sessionId, payload);
+                }
+            } catch (Throwable t) {
+                registry.log("[ERROR] Failed to process INPUT frame from session " + sessionId + ": " + t);
+            }
+        }
+
+        @Override
+        public void onAction(int sessionId, int actionType) {
+            // ACTION 프레임 처리: 0=BasicAttack, 1=TacticalAbility, 2=UltimateAbility
+            try {
+                var character = registry.getCharacter(sessionId);
+                if (character == null) {
+                    registry.log("[ACTION] No character for sid=" + sessionId + ", ignoring action " + actionType);
+                    return;
+                }
+
+                // 조준 각도 → 단위 방향 벡터
+                float aim = registry.getAimAngle(sessionId);
+                float dx = (float)Math.cos(aim);
+                float dy = (float)Math.sin(aim);
+                com.fpsgame.common.Vec2 dir = new com.fpsgame.common.Vec2(dx, dy);
+
+                switch (actionType) {
+                    case 0 -> character.useBasicAbility(dir);
+                    case 1 -> character.useTacticalAbility(dir);
+                    case 2 -> character.useUltimateAbility(dir);
+                    default -> registry.log("[ACTION] Unknown actionType=" + actionType + " from sid=" + sessionId);
+                }
+                registry.log("[ACTION] sid=" + sessionId + " actionType=" + actionType + " aim=" + aim);
+            } catch (Throwable t) {
+                registry.log("[ERROR] Failed to process ACTION from session " + sessionId + ": " + t);
+            }
+        }
+
         private boolean canAdvanceToVote(int total) {
             if (total < 2) return false; // 인원 부족
             if (!lobbyState.isEveryoneReady()) return false; // 준비 미완료

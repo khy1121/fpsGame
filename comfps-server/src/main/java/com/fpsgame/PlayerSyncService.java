@@ -1,9 +1,9 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.SnapshotV1;
-
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -222,6 +222,12 @@ public final class PlayerSyncService {
         this.maxX = Math.max(minX, maxX);
         this.minY = Math.min(minY, maxY);
         this.maxY = Math.max(minY, maxY);
+    }
+
+    /** 현재 세션의 조준 각도(라디안)를 반환. 없으면 0. */
+    public float getAimAngle(int sessionId) {
+        Player p = players.get(sessionId);
+        return (p != null) ? p.aim : 0f;
     }
 
     // ---- 내부 보조 ----

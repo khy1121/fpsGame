@@ -27,6 +27,9 @@ public final class DefaultServerRouter {
         default void registerMapVote(int sessionId, int mapId) {}
         default void onClientBye(int sessionId) {}
         default int currentPhase() { return 0; }
+        // Gameplay hooks
+        default void onInputFrame(int sessionId, byte[] payload) {}
+        default void onAction(int sessionId, int actionType) {}
     }
 
     /** Server context used by router (send/broadcast/close/log). */
@@ -102,12 +105,13 @@ public final class DefaultServerRouter {
                 case Protocol.Opcode.READY_TOGGLE -> onReadyToggle(context, sessionId, frame);
                 case Protocol.Opcode.SET_SELECTION -> onSetSelection(context, sessionId, frame);
                 case Protocol.Opcode.MAP_VOTE -> onMapVote(context, sessionId, frame);
+                case Protocol.Opcode.INPUT -> onInput(context, sessionId, frame);
+                case Protocol.Opcode.ACTION -> onAction(context, sessionId, frame);
                 // Ignore server-to-client only opcodes on server RX
                 case Protocol.Opcode.WELCOME,
                      Protocol.Opcode.PHASE_UPDATE,
                      Protocol.Opcode.COUNTDOWN,
                      Protocol.Opcode.ROUND_RESULT,
-                     Protocol.Opcode.INPUT,
                      Protocol.Opcode.SNAPSHOT -> { /* ignore on server RX */ }
                 default -> context.log("Unknown opcode from " + sessionId + ": " + (frame.opcode & 0xFF));
             }
@@ -160,6 +164,17 @@ public final class DefaultServerRouter {
         ctx.log("[RX] MAP_VOTE sid=" + sid + " mapId=" + mapId);
         hooks.registerMapVote(sid, mapId);
         ctx.log("[HOOK] registerMapVote called for sid=" + sid);
+    }
+
+    private void onInput(ServerContext ctx, int sid, Protocol.Frame f) {
+        // INPUT 프레임을 그대로 hook에 전달 (PlayerSyncService가 파싱)
+        hooks.onInputFrame(sid, f.payload);
+    }
+
+    private void onAction(ServerContext ctx, int sid, Protocol.Frame f) {
+        int actionType = Protocol.parseAction(f.payload);
+        ctx.log("[RX] ACTION sid=" + sid + " type=" + actionType);
+        hooks.onAction(sid, actionType);
     }
 
     // Session lifecycle hooks (optional)
