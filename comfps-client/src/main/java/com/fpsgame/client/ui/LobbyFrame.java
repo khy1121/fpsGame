@@ -297,6 +297,12 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     }
 
     private void selectTeam(int team) {
+        // READY 상태일 때는 팀 변경 불가
+        if (isReady) {
+            chatPanel.appendSystemMessage("READY 상태에서는 팀 변경이 불가능합니다. CANCEL을 먼저 누르세요.");
+            return;
+        }
+        
         selectedTeam = team;
         if (team == 0) {
             // RED 선택: 금색 굵은 테두리, 빨강 배경 유지
@@ -320,11 +326,6 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 BorderFactory.createLineBorder(new Color(0x8b0000), 2),
                 new EmptyBorder(8, 16, 8, 16)
             ));
-        }
-        
-        // ready 상태면 취소
-        if (isReady) {
-            toggleReady();
         }
     }
 

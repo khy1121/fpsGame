@@ -157,7 +157,7 @@ public class CharacterSelectPanel extends JPanel {
         choose.setFocusPainted(false); // 포커스 테두리 제거
         choose.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         choose.setBackground(new Color(60, 120, 180));
-        choose.setForeground(Color.WHITE);
+        choose.setForeground(Color.BLACK); // 검정 글씨
         choose.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(80, 140, 200), 1),
             BorderFactory.createEmptyBorder(6, 12, 6, 12) // 패딩 추가
