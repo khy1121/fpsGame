@@ -47,6 +47,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final JTabbedPane tabbedPane = new JTabbedPane();
     private final MapInfoPanel mapInfoPanel;
     private final CharacterSelectPanel charSelectPanel;
+    
+    // 레디 상태 및 팀 채팅 토글
+    private boolean isReady = false;
+    private boolean isTeamChatMode = false; // false=전체, true=팀
 
     // 팀 선택
     private final JButton redTeamBtn = new JButton("RED TEAM");
@@ -59,7 +63,6 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
     // READY 버튼
     private final JButton readyBtn = new JButton("READY");
-    private boolean isReady = false;
 
     // 채팅 패널
     private final ChatPanel chatPanel = new ChatPanel();
@@ -137,9 +140,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setOpaque(false);
 
-        // 탭 구성
-        tabbedPane.setBackground(new Color(0x2a2f38));
-        tabbedPane.setForeground(Color.WHITE);
+        // 탭 구성 - 노란 배경에 검정 글씨
+        tabbedPane.setBackground(new Color(0xffd700));
+        tabbedPane.setForeground(Color.BLACK);
+        tabbedPane.setFont(new Font("맑은 고딕", Font.BOLD, 14));
         tabbedPane.addTab("Map Info", mapInfoPanel);
         tabbedPane.addTab("Character Select", charSelectPanel);
 
@@ -159,24 +163,26 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         JPanel teamBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 12));
         teamBtnPanel.setOpaque(false);
 
+        // RED 팀 버튼 - 빨강 배경, 검정 글씨
         redTeamBtn.setPreferredSize(new Dimension(180, 50));
-        redTeamBtn.setBackground(new Color(0xd32f2f));
-        redTeamBtn.setForeground(Color.WHITE);
+        redTeamBtn.setBackground(Color.RED);
+        redTeamBtn.setForeground(Color.BLACK);
         redTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         redTeamBtn.setFocusPainted(false);
         redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0x8b0000), 2), // 기본 테두리
+            BorderFactory.createLineBorder(new Color(0x8b0000), 2),
             new EmptyBorder(8, 16, 8, 16)
         ));
         redTeamBtn.addActionListener(e -> selectTeam(0));
 
+        // BLUE 팀 버튼 - 파랑 배경, 검정 글씨
         blueTeamBtn.setPreferredSize(new Dimension(180, 50));
-        blueTeamBtn.setBackground(new Color(0x1976d2));
-        blueTeamBtn.setForeground(Color.WHITE);
+        blueTeamBtn.setBackground(Color.BLUE);
+        blueTeamBtn.setForeground(Color.BLACK);
         blueTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         blueTeamBtn.setFocusPainted(false);
         blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0x0d47a1), 2), // 기본 테두리
+            BorderFactory.createLineBorder(new Color(0x000080), 2),
             new EmptyBorder(8, 16, 8, 16)
         ));
         blueTeamBtn.addActionListener(e -> selectTeam(1));
@@ -199,9 +205,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         JPanel readyPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 16));
         readyPanel.setOpaque(false);
 
+        // READY 버튼 - 초록 배경, 검정 글씨
         readyBtn.setPreferredSize(new Dimension(240, 60));
-        readyBtn.setBackground(new Color(0x4caf50));
-        readyBtn.setForeground(Color.WHITE);
+        readyBtn.setBackground(new Color(0x00ff00)); // 초록
+        readyBtn.setForeground(Color.BLACK);
         readyBtn.setFont(new Font("맑은 고딕", Font.BOLD, 20));
         readyBtn.setFocusPainted(false);
         readyBtn.setBorderPainted(false);
@@ -247,22 +254,40 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
     private JPanel buildChatPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setPreferredSize(new Dimension(400, 0)); // 채팅 패널 폭 증가
+        panel.setPreferredSize(new Dimension(400, 0));
         panel.setOpaque(false);
 
+        // 상단: 제목 + 팀/전체 토글
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
+        
         JLabel chatTitle = new JLabel("Chat", SwingConstants.CENTER);
         chatTitle.setForeground(Color.WHITE);
         chatTitle.setFont(new Font("맑은 고딕", Font.BOLD, 16));
-        chatTitle.setBorder(new EmptyBorder(6, 0, 6, 0));
+        
+        JButton toggleChatBtn = new JButton("전체");
+        toggleChatBtn.setFocusPainted(false);
+        toggleChatBtn.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+        toggleChatBtn.setBackground(new Color(0x4caf50));
+        toggleChatBtn.setForeground(Color.WHITE);
+        toggleChatBtn.addActionListener(e -> {
+            isTeamChatMode = !isTeamChatMode;
+            toggleChatBtn.setText(isTeamChatMode ? "팀" : "전체");
+            toggleChatBtn.setBackground(isTeamChatMode ? new Color(0xff9800) : new Color(0x4caf50));
+        });
+        
+        headerPanel.add(chatTitle, BorderLayout.CENTER);
+        headerPanel.add(toggleChatBtn, BorderLayout.EAST);
 
-        panel.add(chatTitle, BorderLayout.NORTH);
+        panel.add(headerPanel, BorderLayout.NORTH);
         panel.add(chatPanel, BorderLayout.CENTER);
 
         // 채팅 전송 콜백 설정
         chatPanel.setOnSendChat(msg -> {
             try {
-                controller.sendChat(msg);
-                // 로컬 append 제거 - 서버 브로드캐스트로만 표시
+                // [닉네임] : 메시지 형식으로 전송
+                String formattedMsg = "[" + nickname + "] : " + msg;
+                controller.sendChat(formattedMsg);
             } catch (Exception ex) {
                 chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
             }
@@ -274,38 +299,72 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private void selectTeam(int team) {
         selectedTeam = team;
         if (team == 0) {
-            // RED 선택: 금색 굵은 테두리 + 밝은 배경
-            redTeamBtn.setBackground(new Color(0xe53935));
+            // RED 선택: 금색 굵은 테두리, 빨강 배경 유지
             redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xffd700), 4),
                 new EmptyBorder(8, 16, 8, 16)
             ));
-            // BLUE 기본: 어두운 테두리
-            blueTeamBtn.setBackground(new Color(0x1976d2));
+            // BLUE 기본: 얇은 테두리
             blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0x0d47a1), 2),
+                BorderFactory.createLineBorder(new Color(0x000080), 2),
                 new EmptyBorder(8, 16, 8, 16)
             ));
         } else {
-            // BLUE 선택: 금색 굵은 테두리 + 밝은 배경
-            blueTeamBtn.setBackground(new Color(0x1e88e5));
+            // BLUE 선택: 금색 굵은 테두리, 파랑 배경 유지
             blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0xffd700), 4),
                 new EmptyBorder(8, 16, 8, 16)
             ));
-            // RED 기본: 어두운 테두리
-            redTeamBtn.setBackground(new Color(0xd32f2f));
+            // RED 기본: 얇은 테두리
             redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(0x8b0000), 2),
                 new EmptyBorder(8, 16, 8, 16)
             ));
         }
+        
+        // ready 상태면 취소
+        if (isReady) {
+            toggleReady();
+        }
     }
 
     private void toggleReady() {
+        if (selectedTeam < 0) {
+            chatPanel.appendSystemMessage("팀을 먼저 선택하세요!");
+            return;
+        }
+        
         isReady = !isReady;
-        readyBtn.setBackground(isReady ? new Color(0x9e9e9e) : new Color(0x4caf50));
-        readyBtn.setText(isReady ? "READY ✓" : "READY");
+        
+        if (isReady) {
+            // READY 상태: 빨강 배경으로 CANCEL 표시
+            readyBtn.setBackground(Color.RED);
+            readyBtn.setText("CANCEL");
+            
+            // 해당 팀 슬롯에 닉네임 추가
+            JLabel[] teamSlots = (selectedTeam == 0) ? redSlots : blueSlots;
+            for (int i = 0; i < teamSlots.length; i++) {
+                if (teamSlots[i].getText().equals("Empty")) {
+                    teamSlots[i].setText(nickname);
+                    teamSlots[i].setForeground(Color.WHITE);
+                    break;
+                }
+            }
+        } else {
+            // CANCEL 상태: 초록 배경으로 READY 표시
+            readyBtn.setBackground(new Color(0x00ff00));
+            readyBtn.setText("READY");
+            
+            // 해당 팀 슬롯에서 닉네임 제거
+            JLabel[] teamSlots = (selectedTeam == 0) ? redSlots : blueSlots;
+            for (int i = 0; i < teamSlots.length; i++) {
+                if (teamSlots[i].getText().equals(nickname)) {
+                    teamSlots[i].setText("Empty");
+                    teamSlots[i].setForeground(new Color(0x999999));
+                    break;
+                }
+            }
+        }
 
         try {
             controller.sendReadyToggle(isReady);
@@ -340,8 +399,9 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onChat(String text) {
         SwingUtilities.invokeLater(() -> {
-            // myId 기반으로 내 메시지와 다른 사람 메시지 구분
-            if (myId >= 0 && text.startsWith("[" + myId + "]")) {
+            // [닉네임] : 메시지 형식으로 이미 포맷되어 옴
+            // 내 닉네임으로 시작하면 노란색, 아니면 흰색
+            if (text.startsWith("[" + nickname + "]")) {
                 // 내 메시지: 노란색
                 chatPanel.appendMyMessage(text);
             } else {
