@@ -165,7 +165,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         redTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         redTeamBtn.setFocusPainted(false);
         redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(0xffd700), 3),
+            BorderFactory.createLineBorder(new Color(0x8b0000), 2), // 기본 테두리
             new EmptyBorder(8, 16, 8, 16)
         ));
         redTeamBtn.addActionListener(e -> selectTeam(0));
@@ -175,7 +175,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         blueTeamBtn.setForeground(Color.WHITE);
         blueTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
         blueTeamBtn.setFocusPainted(false);
-        blueTeamBtn.setBorder(new EmptyBorder(8, 16, 8, 16));
+        blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(0x0d47a1), 2), // 기본 테두리
+            new EmptyBorder(8, 16, 8, 16)
+        ));
         blueTeamBtn.addActionListener(e -> selectTeam(1));
 
         teamBtnPanel.add(redTeamBtn);
@@ -259,8 +262,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         chatPanel.setOnSendChat(msg -> {
             try {
                 controller.sendChat(msg);
-                // 내 메시지는 즉시 노란색으로 표시
-                chatPanel.appendMyMessage(msg);
+                // 로컬 append 제거 - 서버 브로드캐스트로만 표시
             } catch (Exception ex) {
                 chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
             }
@@ -272,11 +274,31 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private void selectTeam(int team) {
         selectedTeam = team;
         if (team == 0) {
-            redTeamBtn.setBorder(BorderFactory.createLineBorder(new Color(0xffd700), 2));
-            blueTeamBtn.setBorder(null);
+            // RED 선택: 금색 굵은 테두리 + 밝은 배경
+            redTeamBtn.setBackground(new Color(0xe53935));
+            redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xffd700), 4),
+                new EmptyBorder(8, 16, 8, 16)
+            ));
+            // BLUE 기본: 어두운 테두리
+            blueTeamBtn.setBackground(new Color(0x1976d2));
+            blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0x0d47a1), 2),
+                new EmptyBorder(8, 16, 8, 16)
+            ));
         } else {
-            blueTeamBtn.setBorder(BorderFactory.createLineBorder(new Color(0xffd700), 2));
-            redTeamBtn.setBorder(null);
+            // BLUE 선택: 금색 굵은 테두리 + 밝은 배경
+            blueTeamBtn.setBackground(new Color(0x1e88e5));
+            blueTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0xffd700), 4),
+                new EmptyBorder(8, 16, 8, 16)
+            ));
+            // RED 기본: 어두운 테두리
+            redTeamBtn.setBackground(new Color(0xd32f2f));
+            redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(0x8b0000), 2),
+                new EmptyBorder(8, 16, 8, 16)
+            ));
         }
     }
 
@@ -317,12 +339,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     // ClientController.Ui 구현
     @Override
     public void onChat(String text) {
-        // 서버에서 받은 채팅은 흰색으로 표시 (다른 사람 메시지만 표시)
-        // 내 메시지는 이미 노란색으로 표시되었으므로 표시하지 않음
         SwingUtilities.invokeLater(() -> {
-            // 간단하게: 서버에서 받은 메시지는 모두 다른 사람 메시지로 처리
-            // (실제로는 내 메시지도 포함되어 올 수 있음)
-            chatPanel.appendOtherMessage(text);
+            // myId 기반으로 내 메시지와 다른 사람 메시지 구분
+            if (myId >= 0 && text.startsWith("[" + myId + "]")) {
+                // 내 메시지: 노란색
+                chatPanel.appendMyMessage(text);
+            } else {
+                // 다른 사람 메시지: 흰색
+                chatPanel.appendOtherMessage(text);
+            }
         });
     }
 

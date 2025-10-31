@@ -109,9 +109,12 @@ public class MapInfoPanel extends JPanel {
         if (img != null) {
             img = ImageUtil.scale(img, 350, 220); // 350x220으로 스케일 통일
             target.setIcon(new ImageIcon(img));
+            target.setText(""); // 이미지 로드 성공 시 텍스트 제거
         } else {
-            target.setText("No Image");
-            target.setForeground(new Color(0x666666));
+            target.setText(mapId); // 이미지 없으면 ID 표시
+            target.setForeground(Color.WHITE);
+            target.setFont(new Font("맑은 고딕", Font.BOLD, 24));
+            System.err.println("Failed to load map image: " + mapId);
         }
     }
 }

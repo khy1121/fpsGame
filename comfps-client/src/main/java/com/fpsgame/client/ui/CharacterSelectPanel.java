@@ -250,8 +250,12 @@ public class CharacterSelectPanel extends JPanel {
                 img = com.fpsgame.client.ui.ImageUtil.whiteToTransparent(img, 20);
                 img = com.fpsgame.client.ui.ImageUtil.scale(img, w, h);
                 target.setIcon(new ImageIcon(img));
+                target.setText(""); // 이미지 로드 성공 시 텍스트 제거
             } else {
-                target.setText("");
+                target.setText(base); // 이미지 없으면 캐릭터 ID 표시
+                target.setForeground(Color.WHITE);
+                target.setFont(new java.awt.Font("맑은 고딕", java.awt.Font.BOLD, 14));
+                System.err.println("Failed to load character image: " + base);
             }
         }
     }
