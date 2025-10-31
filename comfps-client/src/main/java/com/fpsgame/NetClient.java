@@ -218,14 +218,7 @@ public class NetClient implements Closeable {
             case Protocol.Opcode.ROUND_RESULT -> fireRoundResult(Protocol.parseRoundResult(f.payload));
             case Protocol.Opcode.READY_STATUS -> {
                 var rs = Protocol.parseReadyStatus(f.payload);
-                // 리플렉션으로 onReadyStatusFull 메서드 호출 시도
-                try {
-                    java.lang.reflect.Method m = listener.getClass().getMethod("onReadyStatusFull", Protocol.ReadyStatus.class);
-                    m.invoke(listener, rs);
-                } catch (Exception ignore) {
-                    // fallback: 레거시 메서드만 호출
-                    fireReadyStatus(rs);
-                }
+                fireReadyStatus(rs);
             }
             default -> { }
         }
@@ -262,7 +255,21 @@ public class NetClient implements Closeable {
     }
 
     private void fireReadyStatus(Protocol.ReadyStatus rs) {
-        dispatch(() -> listener.onReadyStatus(rs.ready, rs.total));
+        dispatch(() -> {
+            listener.onReadyStatus(rs.ready, rs.total);
+            // onReadyStatusFull 메서드가 있으면 호출 (duck typing)
+            try {
+                java.lang.reflect.Method m = listener.getClass().getMethod("onReadyStatusFull", Protocol.ReadyStatus.class);
+                m.setAccessible(true);
+                m.invoke(listener, rs);
+            } catch (NoSuchMethodException ignore) {
+                // 메서드 없음 - 무시
+            } catch (Exception e) {
+                // 다른 오류 - 로그 출력
+                System.err.println("[NetClient] onReadyStatusFull invocation failed: " + e);
+                e.printStackTrace();
+            }
+        });
     }
 
     private void fireDisconnected(String msg) {
