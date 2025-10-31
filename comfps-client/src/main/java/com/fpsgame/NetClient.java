@@ -35,8 +35,13 @@ public class NetClient implements Closeable {
         default void onRoundResult(Protocol.RoundResult rr) {}
         // 대기 인원 수 갱신
         default void onReadyStatus(int ready, int total) {}
+        // 상세 READY_STATUS (플레이어 리스트 포함)
+        default void onReadyStatusFull(Protocol.ReadyStatus rs) {}
         // 연결 끊김
         default void onDisconnected(String message) {}
+        // 스냅샷/투사체 업데이트
+        default void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {}
+        default void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {}
 
         // 연결 상태 알림
         default void onOpen(NetClient client) {}
@@ -183,6 +188,22 @@ public class NetClient implements Closeable {
         }
     }
 
+    /** INPUT 전송: 마스크 + (선택) 조준각도 */
+    public void sendInputMask(byte mask, java.lang.Float aimNullable) throws IOException {
+        DataOutputStream o = ensureOut();
+        byte[] payload;
+        if (aimNullable == null) {
+            payload = new byte[]{ mask };
+        } else {
+            int bits = Float.floatToIntBits(aimNullable);
+            payload = new byte[]{
+                mask,
+                (byte)((bits>>>24)&0xFF), (byte)((bits>>>16)&0xFF), (byte)((bits>>>8)&0xFF), (byte)(bits&0xFF)
+            };
+        }
+        synchronized (o) { Protocol.writeFrame(o, Protocol.Opcode.INPUT, payload); }
+    }
+
     // 수신 루프 ---------------------------------------------------------
 
     private void rxLoop() {
@@ -220,6 +241,8 @@ public class NetClient implements Closeable {
                 var rs = Protocol.parseReadyStatus(f.payload);
                 fireReadyStatus(rs);
             }
+            case Protocol.Opcode.SNAPSHOT -> fireSnapshotV2Safe(f.payload);
+            case Protocol.PROJECTILES -> fireProjectilesV2Safe(f.payload);
             default -> { }
         }
     }
@@ -257,19 +280,27 @@ public class NetClient implements Closeable {
     private void fireReadyStatus(Protocol.ReadyStatus rs) {
         dispatch(() -> {
             listener.onReadyStatus(rs.ready, rs.total);
-            // onReadyStatusFull 메서드가 있으면 호출 (duck typing)
-            try {
-                java.lang.reflect.Method m = listener.getClass().getMethod("onReadyStatusFull", Protocol.ReadyStatus.class);
-                m.setAccessible(true);
-                m.invoke(listener, rs);
-            } catch (NoSuchMethodException ignore) {
-                // 메서드 없음 - 무시
-            } catch (Exception e) {
-                // 다른 오류 - 로그 출력
-                System.err.println("[NetClient] onReadyStatusFull invocation failed: " + e);
-                e.printStackTrace();
-            }
+            // 타입 안전한 직접 콜백 호출
+            listener.onReadyStatusFull(rs);
         });
+    }
+
+    private void fireSnapshotV2Safe(byte[] payload) {
+        try {
+            var list = com.fpsgame.common.SnapshotV2.parse(payload);
+            dispatch(() -> listener.onSnapshotV2(list));
+        } catch (Exception e) {
+            // ignore malformed payload
+        }
+    }
+
+    private void fireProjectilesV2Safe(byte[] payload) {
+        try {
+            var list = com.fpsgame.common.ProjectilesV2.parse(payload);
+            dispatch(() -> listener.onProjectilesV2(list));
+        } catch (Exception e) {
+            // ignore malformed payload
+        }
     }
 
     private void fireDisconnected(String msg) {

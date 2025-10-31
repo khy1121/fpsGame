@@ -296,6 +296,8 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
     }
     
     public void broadcastReadyStatus(int ready, int total) {
+        // 간단한 디바운스/스로틀링: 100ms 이내 반복 호출은 무시하여 채터를 줄인다.
+        if (!readyStatusThrottleOkay()) return;
         try {
             // 플레이어 리스트 수집
             java.util.List<Protocol.PlayerInfo> players = new java.util.ArrayList<>();
@@ -323,6 +325,23 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
                 catch (IOException ioe) { log("broadcastReadyStatus failed to " + e.getKey() + ": " + ioe.getMessage()); }
             }
         } catch (Exception ex) { log("broadcastReadyStatus error: " + ex.getMessage()); }
+    }
+
+    // --- READY_STATUS 디바운스 상태 ---
+    private volatile long lastReadyStatusSentAtNs = 0L;
+    private static final long READY_STATUS_THROTTLE_NS = 100_000_000L; // 100ms
+
+    /**
+     * 마지막 전송 이후 일정 시간(100ms) 내 호출은 무시하여 과도한 브로드캐스트를 줄인다.
+     */
+    private boolean readyStatusThrottleOkay() {
+        long now = System.nanoTime();
+        long prev = lastReadyStatusSentAtNs;
+        if (now - prev < READY_STATUS_THROTTLE_NS) {
+            return false;
+        }
+        lastReadyStatusSentAtNs = now;
+        return true;
     }
 
     private static byte[] buildUtf8Payload(String text) {

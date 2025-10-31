@@ -39,6 +39,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final String nickname;
     private final Settings settings;
     private final ClientController controller;
+    private GamePanel gamePanel; // GAME 카드 렌더러
     
     // 내 플레이어 ID (서버에서 받음)
     private int myId = -1;
@@ -101,6 +102,12 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         SwingUtilities.invokeLater(this::autoConnect);
     }
 
+    // 카드 전환용 상수 및 컨테이너
+    private static final String CARD_LOBBY = "CARD_LOBBY";
+    private static final String CARD_VOTE  = "CARD_VOTE";
+    private static final String CARD_GAME  = "CARD_GAME";
+    private JPanel centerCards;
+
     private void buildUI() {
         JPanel mainPanel = new JPanel(new BorderLayout(12, 12));
         mainPanel.setBackground(new Color(0x1a1d24));
@@ -109,13 +116,54 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         // 상단: 연결 정보
         mainPanel.add(buildTopPanel(), BorderLayout.NORTH);
 
-        // 중앙: 탭 + 팀 슬롯
-        mainPanel.add(buildCenterPanel(), BorderLayout.CENTER);
+    // 중앙: 카드 레이아웃(LOBBY/VOTE/GAME)
+    mainPanel.add(buildCardsPanel(), BorderLayout.CENTER);
 
         // 우측: 채팅
         mainPanel.add(buildChatPanel(), BorderLayout.EAST);
 
         setContentPane(mainPanel);
+    }
+
+    private JPanel buildCardsPanel() {
+        centerCards = new JPanel(new java.awt.CardLayout());
+        centerCards.setOpaque(false);
+        centerCards.add(buildCenterPanel(), CARD_LOBBY);
+        centerCards.add(buildVotePanel(), CARD_VOTE);
+        centerCards.add(buildGamePanel(), CARD_GAME);
+        showCenterCard(CARD_LOBBY);
+        return centerCards;
+    }
+
+    private void showCenterCard(String name) {
+        java.awt.CardLayout cl = (java.awt.CardLayout) centerCards.getLayout();
+        cl.show(centerCards, name);
+    }
+
+    private JPanel buildVotePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        JLabel lbl = new JLabel("🗳️ Voting in progress... Click a map on the left.", SwingConstants.CENTER);
+        lbl.setForeground(Color.WHITE);
+        lbl.setFont(new Font("맑은 고딕", Font.BOLD, 18));
+        panel.add(lbl, BorderLayout.CENTER);
+        return panel;
+    }
+
+    private JPanel buildGamePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        gamePanel = new GamePanel();
+        // Bind input sender to controller
+        gamePanel.setInputSender((mask, aim) -> {
+            try {
+                controller.sendInputMask(mask, aim);
+            } catch (Exception ex) {
+                // ignore transient send errors; connection state will handle
+            }
+        });
+        panel.add(gamePanel, BorderLayout.CENTER);
+        return panel;
     }
 
     private JPanel buildTopPanel() {
@@ -472,6 +520,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 (welcome.mapId >= 0 ? (" map=" + welcome.mapId) : "") +
                 (welcome.team >= 0 ? (" team=" + welcome.team) : "") +
                 (welcome.character >= 0 ? (" char=" + welcome.character) : ""));
+            if (gamePanel != null) {
+                gamePanel.setWorldSize(welcome.worldW, welcome.worldH);
+                gamePanel.setMyId(welcome.myId);
+            }
         });
     }
 
@@ -481,6 +533,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             // PHASE 6: Phase에 따라 탭 자동 전환 및 UI 업데이트
             switch (phaseCode) {
                 case 0: // LOBBY
+                    showCenterCard(CARD_LOBBY);
                     tabbedPane.setSelectedIndex(0); // Map Info 탭
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  📋 로비 단계");
@@ -489,6 +542,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                     break;
                     
                 case 1: // VOTE
+                    showCenterCard(CARD_VOTE);
                     tabbedPane.setSelectedIndex(0); // Map Info 탭
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  🗳️ 맵 투표 시작!");
@@ -497,6 +551,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                     break;
                     
                 case 2: // CHARACTER_SELECT
+                    showCenterCard(CARD_LOBBY); // 캐릭터 선택은 기존 로비 탭에서 처리
                     tabbedPane.setSelectedIndex(1); // Character Select 탭
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  👤 캐릭터 선택 시작!");
@@ -505,6 +560,8 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                     break;
                     
                 case 3: // COUNTDOWN
+                    showCenterCard(CARD_GAME); // 게임 화면 준비
+                    if (gamePanel != null) gamePanel.requestFocusInWindow();
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  ⏰ 게임 곧 시작!");
                     chatPanel.appendSystemMessage("  준비하세요...");
@@ -512,13 +569,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                     break;
                     
                 case 4: // PLAYING
+                    showCenterCard(CARD_GAME);
+                    if (gamePanel != null) gamePanel.requestFocusInWindow();
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  🎮 게임 시작!");
                     chatPanel.appendSystemMessage("=============================");
-                    // TODO PHASE 7: 게임 화면으로 전환
                     break;
                     
                 case 5: // ROUND_END
+                    showCenterCard(CARD_LOBBY);
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  🏁 라운드 종료");
                     chatPanel.appendSystemMessage("=============================");
@@ -559,6 +618,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             }
             chatPanel.appendSystemMessage("=============================");
         });
+    }
+    
+    /**
+     * ClientController.Ui 확장: 플레이어 리스트 포함 READY_STATUS 수신 시 팀 슬롯을 동기화한다.
+     */
+    @Override
+    public void onReadyStatusDetailed(Protocol.ReadyStatus status) {
+        // 기존 구현과의 호환을 위해 세부 처리 메서드로 위임
+        onReadyStatusWithPlayers(status);
     }
     
     /**
@@ -626,5 +694,18 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             chatPanel.appendSystemMessage("Disconnected: " + message);
             JOptionPane.showMessageDialog(this, "서버 연결이 끊어졌습니다.", "알림", JOptionPane.WARNING_MESSAGE);
         });
+    }
+
+    // === Gameplay snapshot/projectile updates ===
+    @Override
+    public void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {
+        if (gamePanel == null) return;
+        SwingUtilities.invokeLater(() -> gamePanel.applySnapshot(list));
+    }
+
+    @Override
+    public void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {
+        if (gamePanel == null) return;
+        SwingUtilities.invokeLater(() -> gamePanel.applyProjectiles(list));
     }
 }

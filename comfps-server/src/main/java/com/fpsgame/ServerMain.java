@@ -34,12 +34,50 @@ public final class ServerMain {
             if (registry != null) {
                 registry.setLobbyState(lobbyState);
             }
+
+            // GameServer FSM 조건을 서버 로비 게이트 규칙으로 대체
+            installGameServerConditions();
         }
         
         // Registry 나중에 설정 가능하도록
         void setRegistry(SessionRegistry registry) {
             this.registry = Objects.requireNonNull(registry, "registry");
             registry.setLobbyState(lobbyState);
+            // 레지스트리 설정 이후에도 다시 조건을 설치(레퍼런스 갱신)
+            installGameServerConditions();
+        }
+
+        /**
+         * GameServer에 엄격한 진행 조건을 주입하여 단일 인원 READY로 VOTE로 가지 않도록 한다.
+         * - everyoneReady: 총원>=2, 모두 READY, 모든 플레이어 팀 선택 완료, 팀 밸런스 |red-blue|<=1
+         * - voteComplete: LobbyHooks의 voteDecided 플래그
+         */
+        private void installGameServerConditions() {
+            try {
+                gameServer.setConditions(
+                    // everyoneReady
+                    () -> {
+                        SessionRegistry reg = this.registry;
+                        if (reg == null) return false;
+                        int total = reg.size();
+                        if (total < 2) return false; // 인원 부족
+                        if (!lobbyState.isEveryoneReady()) return false; // 모두 레디 여부
+                        int red = 0, blue = 0;
+                        for (int sid : reg.getSessionIds()) {
+                            int team = reg.getCharacterTeam(sid);
+                            if (team < 0) return false; // 팀 미선택 존재
+                            if (team == com.fpsgame.common.GameEnums.Team.RED.ordinal()) red++;
+                            else if (team == com.fpsgame.common.GameEnums.Team.BLUE.ordinal()) blue++;
+                        }
+                        return Math.abs(red - blue) <= 1;
+                    },
+                    // voteComplete
+                    () -> this.voteDecided,
+                    // 생존 조건(임시로 항상 true)
+                    () -> true,
+                    () -> true
+                );
+            } catch (Throwable ignore) {}
         }
 
         @Override
@@ -298,14 +336,8 @@ public final class ServerMain {
                 registry.log("[ERROR] Map selection broadcast failed: " + t);
             }
 
-            // VOTE → COUNTDOWN Phase 전환
-            try {
-                registry.broadcastPhaseUpdate(com.fpsgame.common.GameEnums.Phase.COUNTDOWN.ordinal());
-                registry.broadcastSystemChat("[PHASE] 카운트다운을 시작합니다!");
-                registry.log("[PHASE] Transitioned to COUNTDOWN");
-            } catch (Throwable t) {
-                registry.log("[ERROR] Phase transition to COUNTDOWN failed: " + t);
-            }
+            // Phase 전환은 GameServer FSM(voteComplete 조건)에서 처리
+            try { registry.broadcastSystemChat("[PHASE] 투표가 완료되었습니다. 곧 시작합니다!"); } catch (Throwable ignore) {}
         }
     }
 

@@ -35,6 +35,10 @@ public class ClientController {
             // 레거시 콜백 호출
             onReadyStatus(status.ready, status.total);
         }
+        /** Snapshot v2 list delivered from server. */
+        default void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {}
+        /** Projectiles v2 list delivered from server. */
+        default void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {}
     }
 
     //
@@ -189,6 +193,16 @@ public class ClientController {
         }
     }
 
+    /** Send simple input mask + optional aim. */
+    public void sendInputMask(byte mask, java.lang.Float aimNullable) {
+        NetClient n = ensureConnected();
+        try {
+            n.sendInputMask(mask, aimNullable);
+        } catch (IOException e) {
+            notifyDisconnected("send error: " + e.getMessage());
+        }
+    }
+
     /** ClientController (ASCII comments). */
     public void sendPingOnce() {
         NetClient n = ensureConnected();
@@ -245,6 +259,16 @@ public class ClientController {
             }
 
             @Override
+            public void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {
+                dispatchEdt(() -> ui.onSnapshotV2(list));
+            }
+
+            @Override
+            public void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {
+                dispatchEdt(() -> ui.onProjectilesV2(list));
+            }
+
+            @Override
             public void onReadyStatus(int ready, int total) {
                 dispatchEdt(() -> {
                     ui.onReadyStatus(ready, total);
@@ -252,6 +276,7 @@ public class ClientController {
             }
 
             // ReadyStatus 전체 객체를 받는 새 메서드 (플레이어 리스트 포함)
+            @Override
             public void onReadyStatusFull(Protocol.ReadyStatus rs) {
                 dispatchEdt(() -> ui.onReadyStatusDetailed(rs));
             }
