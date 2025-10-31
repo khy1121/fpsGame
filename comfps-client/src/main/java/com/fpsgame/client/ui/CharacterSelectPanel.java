@@ -131,12 +131,16 @@ public class CharacterSelectPanel extends JPanel {
         name.setForeground(new Color(235, 235, 235));
         name.setFont(new Font("맑은 고딕", Font.BOLD, 15));
 
-        // 캐릭터 이미지(있을 경우)
+        // 캐릭터 이미지(있을 경우) - 어두운 배경 + 테두리로 강조
         JLabel image = new JLabel();
         image.setHorizontalAlignment(SwingConstants.CENTER);
         image.setOpaque(true);
-        image.setBackground(new Color(24, 24, 24));
+        image.setBackground(new Color(18, 18, 18)); // 더 어두운 배경
         image.setPreferredSize(new java.awt.Dimension(140, 140));
+        image.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(80, 80, 80), 2), // 테두리 강조
+            BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
         BufferedImageLoader.loadCharacter(characterId, image, 140, 140);
 
         // 설명 영역(읽기 전용)
@@ -150,6 +154,15 @@ public class CharacterSelectPanel extends JPanel {
         desc.setBorder(new EmptyBorder(6, 0, 10, 0));
 
         JButton choose = new JButton("Choose");
+        choose.setFocusPainted(false); // 포커스 테두리 제거
+        choose.setFont(new Font("맑은 고딕", Font.BOLD, 12));
+        choose.setBackground(new Color(60, 120, 180));
+        choose.setForeground(Color.WHITE);
+        choose.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(80, 140, 200), 1),
+            BorderFactory.createEmptyBorder(6, 12, 6, 12) // 패딩 추가
+        ));
+        choose.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         choose.addActionListener(e -> sendSelection(characterId));
 
         card.add(name, BorderLayout.NORTH);

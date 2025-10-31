@@ -107,7 +107,7 @@ public class MapInfoPanel extends JPanel {
         if (img == null) img = ImageUtil.loadFile("assets/maps/" + mapId + ".jpg");
 
         if (img != null) {
-            img = ImageUtil.scale(img, 300, 180);
+            img = ImageUtil.scale(img, 350, 220); // 350x220으로 스케일 통일
             target.setIcon(new ImageIcon(img));
         } else {
             target.setText("No Image");

@@ -27,12 +27,12 @@ import com.fpsgame.client.model.Settings;
 import com.fpsgame.common.Protocol;
 
 /**
- * 로비 화면 프레임
- * - Map Info / Character Select 탭
- * - RED TEAM / BLUE TEAM 선택
- * - 팀별 5명 슬롯
+ * 로비 ?�면 ?�레??
+ * - Map Info / Character Select ??
+ * - RED TEAM / BLUE TEAM ?�택
+ * - ?��?5�??�롯
  * - READY 버튼
- * - 채팅 패널
+ * - 채팅 ?�널
  */
 public class LobbyFrame extends JFrame implements ClientController.Ui {
 
@@ -40,20 +40,20 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final Settings settings;
     private final ClientController controller;
     
-    // 내 플레이어 ID (서버에서 받음)
+    // ???�레?�어 ID (?�버?�서 받음)
     private int myId = -1;
 
-    // 탭 패널
+    // ???�널
     private final JTabbedPane tabbedPane = new JTabbedPane();
     private final MapInfoPanel mapInfoPanel;
     private final CharacterSelectPanel charSelectPanel;
 
-    // 팀 선택
+    // ?� ?�택
     private final JButton redTeamBtn = new JButton("RED TEAM");
     private final JButton blueTeamBtn = new JButton("BLUE TEAM");
     private int selectedTeam = 0; // 0=RED, 1=BLUE
 
-    // 팀 슬롯
+    // ?� ?�롯
     private final JLabel[] redSlots = new JLabel[5];
     private final JLabel[] blueSlots = new JLabel[5];
 
@@ -61,10 +61,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final JButton readyBtn = new JButton("READY");
     private boolean isReady = false;
 
-    // 채팅 패널
+    // 채팅 ?�널
     private final ChatPanel chatPanel = new ChatPanel();
 
-    // 연결 정보
+    // ?�결 ?�보
     private final JLabel hostLabel = new JLabel("Host:");
     private final JTextField hostField = new JTextField("127.0.0.1");
     private final JLabel portLabel = new JLabel("Port:");
@@ -77,10 +77,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         this.controller = new ClientController(this, true);
 
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        setSize(1600, 900); // 화면 크기 증가
+        setSize(1600, 900); // ?�면 ?�기 증�?
         setLocationRelativeTo(null);
 
-        // 패널 초기화
+        // ?�널 초기??
         mapInfoPanel = new MapInfoPanel();
         charSelectPanel = new CharacterSelectPanel();
         charSelectPanel.withDefaultCharacters();
@@ -94,7 +94,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             }
         });
 
-        // 자동 서버 연결 시도
+        // ?�동 ?�버 ?�결 ?�도
         SwingUtilities.invokeLater(this::autoConnect);
     }
 
@@ -103,13 +103,13 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         mainPanel.setBackground(new Color(0x1a1d24));
         mainPanel.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        // 상단: 연결 정보
+        // ?�단: ?�결 ?�보
         mainPanel.add(buildTopPanel(), BorderLayout.NORTH);
 
-        // 중앙: 탭 + 팀 슬롯
+        // 중앙: ??+ ?� ?�롯
         mainPanel.add(buildCenterPanel(), BorderLayout.CENTER);
 
-        // 우측: 채팅
+        // ?�측: 채팅
         mainPanel.add(buildChatPanel(), BorderLayout.EAST);
 
         setContentPane(mainPanel);
@@ -137,7 +137,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setOpaque(false);
 
-        // 탭 구성
+        // ??구성
         tabbedPane.setBackground(new Color(0x2a2f38));
         tabbedPane.setForeground(Color.WHITE);
         tabbedPane.addTab("Map Info", mapInfoPanel);
@@ -145,7 +145,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
         panel.add(tabbedPane, BorderLayout.NORTH);
 
-        // 팀 선택 + 슬롯 + READY
+        // ?� ?�택 + ?�롯 + READY
         panel.add(buildTeamPanel(), BorderLayout.CENTER);
 
         return panel;
@@ -155,14 +155,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         JPanel panel = new JPanel(new BorderLayout(8, 8));
         panel.setOpaque(false);
 
-        // 팀 선택 버튼
+        // ?� ?�택 버튼
         JPanel teamBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 16, 12));
         teamBtnPanel.setOpaque(false);
 
         redTeamBtn.setPreferredSize(new Dimension(180, 50));
         redTeamBtn.setBackground(new Color(0xd32f2f));
         redTeamBtn.setForeground(Color.WHITE);
-        redTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        redTeamBtn.setFont(new Font("맑�? 고딕", Font.BOLD, 16));
         redTeamBtn.setFocusPainted(false);
         redTeamBtn.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(0xffd700), 3),
@@ -173,7 +173,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         blueTeamBtn.setPreferredSize(new Dimension(180, 50));
         blueTeamBtn.setBackground(new Color(0x1976d2));
         blueTeamBtn.setForeground(Color.WHITE);
-        blueTeamBtn.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        blueTeamBtn.setFont(new Font("맑�? 고딕", Font.BOLD, 16));
         blueTeamBtn.setFocusPainted(false);
         blueTeamBtn.setBorder(new EmptyBorder(8, 16, 8, 16));
         blueTeamBtn.addActionListener(e -> selectTeam(1));
@@ -183,7 +183,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
         panel.add(teamBtnPanel, BorderLayout.NORTH);
 
-        // 팀 슬롯
+        // ?� ?�롯
         JPanel slotsPanel = new JPanel(new GridLayout(1, 2, 16, 0));
         slotsPanel.setOpaque(false);
 
@@ -199,7 +199,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         readyBtn.setPreferredSize(new Dimension(240, 60));
         readyBtn.setBackground(new Color(0x4caf50));
         readyBtn.setForeground(Color.WHITE);
-        readyBtn.setFont(new Font("맑은 고딕", Font.BOLD, 20));
+        readyBtn.setFont(new Font("맑�? 고딕", Font.BOLD, 20));
         readyBtn.setFocusPainted(false);
         readyBtn.setBorderPainted(false);
         readyBtn.addActionListener(e -> toggleReady());
@@ -220,7 +220,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
         JLabel title = new JLabel(teamName, SwingConstants.CENTER);
         title.setForeground(borderColor.brighter());
-        title.setFont(new Font("맑은 고딕", Font.BOLD, 18));
+        title.setFont(new Font("맑�? 고딕", Font.BOLD, 18));
         panel.add(title, BorderLayout.NORTH);
 
         JPanel slotsGrid = new JPanel(new GridLayout(5, 1, 6, 6));
@@ -232,7 +232,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             slot.setOpaque(true);
             slot.setBackground(new Color(0x3a3f47));
             slot.setForeground(new Color(0x999999));
-            slot.setFont(new Font("맑은 고딕", Font.PLAIN, 15));
+            slot.setFont(new Font("맑�? 고딕", Font.PLAIN, 15));
             slot.setBorder(BorderFactory.createLineBorder(new Color(0x555555), 2));
             slots[i] = slot;
             slotsGrid.add(slot);
@@ -244,22 +244,22 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
 
     private JPanel buildChatPanel() {
         JPanel panel = new JPanel(new BorderLayout(0, 8));
-        panel.setPreferredSize(new Dimension(400, 0)); // 채팅 패널 폭 증가
+        panel.setPreferredSize(new Dimension(400, 0)); // 채팅 ?�널 ??증�?
         panel.setOpaque(false);
 
         JLabel chatTitle = new JLabel("Chat", SwingConstants.CENTER);
         chatTitle.setForeground(Color.WHITE);
-        chatTitle.setFont(new Font("맑은 고딕", Font.BOLD, 16));
+        chatTitle.setFont(new Font("맑�? 고딕", Font.BOLD, 16));
         chatTitle.setBorder(new EmptyBorder(6, 0, 6, 0));
 
         panel.add(chatTitle, BorderLayout.NORTH);
         panel.add(chatPanel, BorderLayout.CENTER);
 
-        // 채팅 전송 콜백 설정
+        // 채팅 ?�송 콜백 ?�정
         chatPanel.setOnSendChat(msg -> {
             try {
                 controller.sendChat(msg);
-                // 내 메시지는 즉시 노란색으로 표시
+                // ??메시지??즉시 ?��??�으�??�시
                 chatPanel.appendMyMessage(msg);
             } catch (Exception ex) {
                 chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
@@ -283,7 +283,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private void toggleReady() {
         isReady = !isReady;
         readyBtn.setBackground(isReady ? new Color(0x9e9e9e) : new Color(0x4caf50));
-        readyBtn.setText(isReady ? "READY ✓" : "READY");
+        readyBtn.setText(isReady ? "READY ?? : "READY");
 
         try {
             controller.sendReadyToggle(isReady);
@@ -297,10 +297,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             String host = hostField.getText().trim();
             int port = Integer.parseInt(portField.getText().replace(",", "").trim());
             controller.connect(host, port, 3000);
-            // controller.attachUi(this) 제거 - 레거시 UI 중복 방지
-            chatPanel.appendSystemMessage("서버 연결 중...");
+            controller.attachUi(this);
+            chatPanel.appendSystemMessage("?�버 ?�결 �?..");
         } catch (Exception ex) {
-            chatPanel.appendSystemMessage("연결 실패: " + ex.getMessage());
+            chatPanel.appendSystemMessage("?�결 ?�패: " + ex.getMessage());
         }
     }
 
@@ -317,18 +317,18 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     // ClientController.Ui 구현
     @Override
     public void onChat(String text) {
-        // 서버에서 받은 채팅은 흰색으로 표시 (다른 사람 메시지만 표시)
-        // 내 메시지는 이미 노란색으로 표시되었으므로 표시하지 않음
+        // ?�버?�서 받�? 채팅?� ?�색?�로 ?�시 (?�른 ?�람 메시지�??�시)
+        // ??메시지???��? ?��??�으�??�시?�었?��?�??�시?��? ?�음
         SwingUtilities.invokeLater(() -> {
-            // 간단하게: 서버에서 받은 메시지는 모두 다른 사람 메시지로 처리
-            // (실제로는 내 메시지도 포함되어 올 수 있음)
+            // 간단?�게: ?�버?�서 받�? 메시지??모두 ?�른 ?�람 메시지�?처리
+            // (?�제로는 ??메시지???�함?�어 ?????�음)
             chatPanel.appendOtherMessage(text);
         });
     }
 
     @Override
     public void onWelcome(Protocol.Welcome welcome) {
-        myId = welcome.myId; // 내 ID 저장
+        myId = welcome.myId; // ??ID ?�??
         SwingUtilities.invokeLater(() -> {
             chatPanel.appendSystemMessage("WELCOME id=" + welcome.myId + 
                 " world=" + welcome.worldW + "x" + welcome.worldH +
@@ -342,7 +342,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     public void onPhaseUpdate(int phaseCode) {
         SwingUtilities.invokeLater(() -> {
             chatPanel.appendSystemMessage("PHASE=" + phaseCode);
-            // TODO: Phase에 따라 UI 변경
+            // TODO: Phase???�라 UI 변�?
         });
     }
 
@@ -373,7 +373,8 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     public void onDisconnected(String message) {
         SwingUtilities.invokeLater(() -> {
             chatPanel.appendSystemMessage("Disconnected: " + message);
-            JOptionPane.showMessageDialog(this, "서버 연결이 끊어졌습니다.", "알림", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "?�버 ?�결???�어졌습?�다.", "?�림", JOptionPane.WARNING_MESSAGE);
         });
     }
 }
+
