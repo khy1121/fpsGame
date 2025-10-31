@@ -12,19 +12,21 @@ public final class ServerMain {
     /** 로비 훅 구현(선택/투표/레디 처리) */
     static final class LobbyHooks implements DefaultServerRouter.Hooks {
         // 세션 레지스트리 및 게임 서버 참조
-        private final SessionRegistry registry;
+        private SessionRegistry registry; // 지연 주입
         private final GameServer gameServer;
         
         // 게임 상태 관리
         private final LobbyState lobbyState;
         private final MapVoteManager voteManager;
 
-        LobbyHooks(SessionRegistry registry, GameServer gameServer) {
-            this.registry = Objects.requireNonNull(registry, "registry");
+        LobbyHooks(GameServer gameServer) {
             this.gameServer = Objects.requireNonNull(gameServer, "gameServer");
             this.lobbyState = new LobbyState();
             this.voteManager = new MapVoteManager();
         }
+
+        /** TcpServer 생성 이후 레지스트리를 주입한다. */
+        public void setRegistry(SessionRegistry registry) { this.registry = Objects.requireNonNull(registry, "registry"); }
 
         @Override
         public void onChat(int fromSessionId, String text, DefaultServerRouter.Broadcaster bc) throws java.io.IOException {
@@ -39,27 +41,30 @@ public final class ServerMain {
             lobbyState.setReady(sessionId, ready);
             
             int rc = countReadyPlayers();
-            int total = registry.size();
+            int total = registry != null ? registry.size() : 0;
             
-            registry.log("[AGGREGATE] READY sid=" + sessionId + " -> " + ready + " (readyCount=" + rc + "/total=" + total + ")");
+            if (registry != null) registry.log("[AGGREGATE] READY sid=" + sessionId + " -> " + ready + " (readyCount=" + rc + "/total=" + total + ")");
             
             // READY 상태 브로드캐스트
             try {
-                registry.broadcastReadyStatus(rc, total);
-                registry.log("[BC] READY_STATUS ready=" + rc + " total=" + total);
+                if (registry != null) {
+                    registry.broadcastReadyStatus(rc, total);
+                    registry.log("[BC] READY_STATUS ready=" + rc + " total=" + total);
+                }
             } catch (Throwable ignore) {}
             
             // 시스템 채팅 브로드캐스트
             try {
-                registry.broadcastSystemChat("[READY] ready=" + rc + " total=" + total);
+                if (registry != null) registry.broadcastSystemChat("[READY] ready=" + rc + " total=" + total);
             } catch (Throwable ignore) {}
             
             // 개별 알림
-            registry.broadcastSystemChat("[SYSTEM] sid=" + sessionId + (ready ? " READY" : " UNREADY"));
+            if (registry != null) registry.broadcastSystemChat("[SYSTEM] sid=" + sessionId + (ready ? " READY" : " UNREADY"));
         }
         
         private int countReadyPlayers() {
             int count = 0;
+            if (registry == null) return 0;
             for (int sid : registry.getSessionIds()) {
                 if (lobbyState.isReady(sid)) count++;
             }
@@ -68,22 +73,26 @@ public final class ServerMain {
 
         @Override
         public void setSelection(int sessionId, int team, int character) {
-            registry.log("[AGGREGATE] SELECT sid=" + sessionId + " team=" + team + " char=" + character);
+            if (registry != null) registry.log("[AGGREGATE] SELECT sid=" + sessionId + " team=" + team + " char=" + character);
             
             // 선택 결과를 월드/웰컴에 반영
             try { 
-                registry.createOrUpdateCharacter(sessionId, team, character);
-                registry.log("[UPDATE] World character created/updated for sid=" + sessionId);
+                if (registry != null) {
+                    registry.createOrUpdateCharacter(sessionId, team, character);
+                    registry.log("[UPDATE] World character created/updated for sid=" + sessionId);
+                }
             } catch (Throwable t) {
-                registry.log("[ERROR] World character update failed for sid=" + sessionId + ": " + t);
+                if (registry != null) registry.log("[ERROR] World character update failed for sid=" + sessionId + ": " + t);
             }
             
             // 해당 플레이어에게 웰컴 프레임 갱신
             try { 
-                registry.sendWelcomeTo(sessionId, team, character);
-                registry.log("[BC] WELCOME sent to sid=" + sessionId);
+                if (registry != null) {
+                    registry.sendWelcomeTo(sessionId, team, character);
+                    registry.log("[BC] WELCOME sent to sid=" + sessionId);
+                }
             } catch (Throwable t) {
-                registry.log("[ERROR] Welcome send failed to sid=" + sessionId + ": " + t);
+                if (registry != null) registry.log("[ERROR] Welcome send failed to sid=" + sessionId + ": " + t);
             }
         }
 
@@ -92,24 +101,28 @@ public final class ServerMain {
             // GameServer를 통한 맵 투표 처리
             com.fpsgame.common.GameEnums.MapId mapEnum = convertMapId(mapId);
             gameServer.voteMap(sessionId, mapEnum);
-            registry.log("[AGGREGATE] VOTE sid=" + sessionId + " map=" + mapId + " (votes=" + voteManager.voterCount() + ")");
+            if (registry != null) registry.log("[AGGREGATE] VOTE sid=" + sessionId + " map=" + mapId + " (votes=" + voteManager.voterCount() + ")");
             
             // 득표 집계 후 맵/월드 크기 반영 + 공지
             com.fpsgame.common.GameEnums.MapId winnerMap = gameServer.currentVoteWinner();
             int winner = winnerMap.ordinal();
             int[] wh = dimsForMap(winner);
             
-            registry.log("[DECIDE] Map winner: " + winner + " (" + winnerMap.name() + ")");
+            if (registry != null) registry.log("[DECIDE] Map winner: " + winner + " (" + winnerMap.name() + ")");
             
-            registry.setWorldSize(wh[0], wh[1]);
-            registry.setMapId(winner);
-            registry.log("[UPDATE] World size set to " + wh[0] + "x" + wh[1] + " for map=" + winner);
+            if (registry != null) {
+                registry.setWorldSize(wh[0], wh[1]);
+                registry.setMapId(winner);
+                registry.log("[UPDATE] World size set to " + wh[0] + "x" + wh[1] + " for map=" + winner);
+            }
             
             try { 
-                registry.broadcastSystemChat("[SYSTEM] mapSelected=" + winner + ", World=" + wh[0] + "x" + wh[1]);
-                registry.log("[BC] Map selection broadcast sent");
+                if (registry != null) {
+                    registry.broadcastSystemChat("[SYSTEM] mapSelected=" + winner + ", World=" + wh[0] + "x" + wh[1]);
+                    registry.log("[BC] Map selection broadcast sent");
+                }
             } catch (Throwable t) {
-                registry.log("[ERROR] Map selection broadcast failed: " + t);
+                if (registry != null) registry.log("[ERROR] Map selection broadcast failed: " + t);
             }
         }
         
@@ -145,6 +158,26 @@ public final class ServerMain {
         com.fpsgame.common.GameEnums.Phase getPhase() {
             return gameServer.getPhase();
         }
+
+        /**
+         * 모두 준비 + 팀 밸런스 OK + 2인 이상 판정
+         * 캐릭터가 미선택인 세션이 하나라도 있으면 false 처리
+         */
+        public boolean isEveryoneReadyAndTeamsBalanced() {
+            if (registry == null) return false;
+            int total = registry.size();
+            if (total < 2) return false;
+            if (!lobbyState.isEveryoneReady()) return false;
+            int red = 0, blue = 0;
+            for (int sid : registry.getSessionIds()) {
+                com.fpsgame.common.character.Character ch = registry.getCharacter(sid);
+                if (ch == null || ch.getTeam() == null) return false;
+                com.fpsgame.common.GameEnums.Team t = ch.getTeam();
+                if (t == com.fpsgame.common.GameEnums.Team.RED) red++;
+                else if (t == com.fpsgame.common.GameEnums.Team.BLUE) blue++;
+            }
+            return Math.abs(red - blue) <= 1;
+        }
     }
 
     public static void main(String[] args) throws Exception {
@@ -176,20 +209,22 @@ public final class ServerMain {
             }
         }
 
-        // 게임 서버 생성 및 시작
-        GameServer gameServer = new GameServer(30); // 30Hz 고정 틱
-        
-        // 플레이스홀더 라우터(최소 훅)
-        DefaultServerRouter placeholderRouter = new DefaultServerRouter(new DefaultServerRouter.Hooks() {
-            //
-            @Override public void setReady(int sessionId, boolean ready) {}
-            @Override public void setSelection(int sessionId, int team, int character) {}
-            @Override public void registerMapVote(int sessionId, int mapId) {}
-        });
-        SessionRegistry registry = new SessionRegistry(placeholderRouter);
+    // 게임 서버 생성 및 시작
+    GameServer gameServer = new GameServer(30); // 30Hz 고정 틱
 
-        LobbyHooks hooks = new LobbyHooks(registry, gameServer);
-        TcpServer server = new TcpServer(port, hooks, 0, bind);
+    // 훅 생성(Registry는 서버 생성 후 주입)
+    LobbyHooks hooks = new LobbyHooks(gameServer);
+    TcpServer server = new TcpServer(port, hooks, 0, bind);
+    SessionRegistry registry = server.getRegistry();
+    hooks.setRegistry(registry);
+
+    // 페이즈6 규칙: 모두 준비 + 팀 밸런스 + 2인 이상일 때 VOTE로 진입
+    gameServer.setConditions(
+        hooks::isEveryoneReadyAndTeamsBalanced,
+        null,
+        null,
+        null
+    );
         
         // 게임 서버 이벤트 리스너 설정 (브로드캐스트 자동화)
         gameServer.setEvents(new GameServer.Events() {
@@ -224,11 +259,11 @@ public final class ServerMain {
             }
         });
         
-        // 게임 서버 시작
-        gameServer.start();
-        
-        // GameServer 등록
-        registry.setGameServer(gameServer);
+    // 게임 서버 시작
+    gameServer.start();
+
+    // GameServer 등록
+    registry.setGameServer(gameServer);
 
         // 간단 로거
         registry.setLogger(msg -> System.out.println("[Server] " + msg));
@@ -237,14 +272,13 @@ public final class ServerMain {
         server.start();
         registry.broadcastSystemChat("[SYSTEM] FPS Server started on port " + server.getPort());
 
-        // 스냅샷 동기화 루프 준비
-        PlayerSyncService sync = new PlayerSyncService();
-        SessionRegistry serverReg = server.getRegistry();
-        serverReg.setSyncService(sync);
-        int worldW = 3000, worldH = 2000;
-        serverReg.setWorldSize(worldW, worldH);
-        sync.setBounds(0, worldW, 0, worldH);
-        serverReg.startSnapshotLoop(20.0);
+    // 스냅샷 동기화 루프 준비(동일 Registry 사용)
+    PlayerSyncService sync = new PlayerSyncService();
+    registry.setSyncService(sync);
+    int worldW = 3000, worldH = 2000;
+    registry.setWorldSize(worldW, worldH);
+    sync.setBounds(0, worldW, 0, worldH);
+    registry.startSnapshotLoop(20.0);
 
         // 종료 훅
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

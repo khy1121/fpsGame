@@ -1,9 +1,10 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.FixedTickRunner;
-import com.fpsgame.common.GameEnums;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
+
+import com.fpsgame.common.FixedTickRunner;
+import com.fpsgame.common.GameEnums;
 
 /**
  * 서버측 게임 컨트롤러(최상위 조율자)
@@ -89,6 +90,10 @@ public final class GameServer {
     public void voteMap(int sessionId, GameEnums.MapId map) { vote.vote(sessionId, map); }
     /** 현재 투표 우승 맵 조회(동률 시 기본 맵) */
     public GameEnums.MapId currentVoteWinner() { return vote.winnerOrDefault(); }
+    /** 현재 투표 인원 수 */
+    public int voterCount() { return vote.voterCount(); }
+    /** 투표 초기화(새 라운드/새 투표 시작 시) */
+    public void resetVotes() { vote.reset(); }
     
     /** 현재 Phase 조회 */
     public GameEnums.Phase getPhase() { return fsm.getPhase(); }

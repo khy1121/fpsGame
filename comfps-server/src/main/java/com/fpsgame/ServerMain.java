@@ -19,6 +19,10 @@ public final class ServerMain {
         private final LobbyState lobbyState;
         private final MapVoteManager voteManager;
 
+        // 투표 완료 규칙: 전체 투표 또는 타임아웃
+        private volatile long voteDeadlineMs = 0L;
+        private volatile int voteExpected = 0;
+
         LobbyHooks(SessionRegistry registry, GameServer gameServer) {
             this.registry = registry;
             this.gameServer = Objects.requireNonNull(gameServer, "gameServer");
@@ -105,17 +109,29 @@ public final class ServerMain {
             // 개별 알림
             registry.broadcastSystemChat("[SYSTEM] sid=" + sessionId + (ready ? " READY" : " UNREADY"));
             
-            // 모두 READY 시 Phase 전환
-            if (lobbyState.isEveryoneReady() && total > 0) {
-                registry.log("[PHASE] Everyone ready! Transitioning to VOTE phase...");
-                try {
-                    // VOTE Phase로 전환
-                    registry.broadcastPhaseUpdate(com.fpsgame.common.GameEnums.Phase.VOTE.ordinal());
-                    registry.broadcastSystemChat("[PHASE] 맵 투표를 시작합니다!");
-                } catch (Exception e) {
-                    registry.log("[ERROR] Phase transition failed: " + e.getMessage());
-                }
+            // 게이트 체크 및 이유 로깅
+            if (!canAdvanceToVote(total)) {
+                logGateReason(total, rc);
+                return;
             }
+
+            // VOTE 진입: 투표 초기화 및 타이머 설정
+            try {
+                gameServer.resetVotes();
+            } catch (Throwable ignore) {}
+            this.voteExpected = total;
+            this.voteDeadlineMs = System.currentTimeMillis() + 10_000L; // 10초 타이머
+
+            registry.log("[PHASE] Enter VOTE: expectedVotes=" + voteExpected + " deadlineMs=" + voteDeadlineMs);
+            try {
+                registry.broadcastPhaseUpdate(com.fpsgame.common.GameEnums.Phase.VOTE.ordinal());
+                registry.broadcastSystemChat("[PHASE] 맵 투표를 시작합니다! 모두 투표하거나 10초 후 자동 결정됩니다.");
+            } catch (Exception e) {
+                registry.log("[ERROR] Phase transition failed: " + e.getMessage());
+            }
+
+            // 타이머 스레드 시작(원샷)
+            startVoteTimerOnce();
         }
         
         private int countReadyPlayers() {
@@ -156,22 +172,12 @@ public final class ServerMain {
             gameServer.voteMap(sessionId, mapEnum);
             registry.log("[AGGREGATE] VOTE sid=" + sessionId + " map=" + mapId + " (votes=" + voteManager.voterCount() + ")");
             
-            // 득표 집계 후 맵/월드 크기 반영 + 공지
-            com.fpsgame.common.GameEnums.MapId winnerMap = gameServer.currentVoteWinner();
-            int winner = winnerMap.ordinal();
-            int[] wh = dimsForMap(winner);
-            
-            registry.log("[DECIDE] Map winner: " + winner + " (" + winnerMap.name() + ")");
-            
-            registry.setWorldSize(wh[0], wh[1]);
-            registry.setMapId(winner);
-            registry.log("[UPDATE] World size set to " + wh[0] + "x" + wh[1] + " for map=" + winner);
-            
-            try { 
-                registry.broadcastSystemChat("[SYSTEM] mapSelected=" + winner + ", World=" + wh[0] + "x" + wh[1]);
-                registry.log("[BC] Map selection broadcast sent");
-            } catch (Throwable t) {
-                registry.log("[ERROR] Map selection broadcast failed: " + t);
+            // 완료 조건 검사: 전원 투표 또는 타임아웃 경과
+            boolean allVoted = false;
+            try { allVoted = gameServer.voterCount() >= voteExpected && voteExpected > 0; } catch (Throwable ignore) {}
+            boolean timeout = System.currentTimeMillis() >= voteDeadlineMs;
+            if (allVoted || timeout) {
+                decideAndBroadcastMap();
             }
         }
         
@@ -206,6 +212,66 @@ public final class ServerMain {
         
         com.fpsgame.common.GameEnums.Phase getPhase() {
             return gameServer.getPhase();
+        }
+
+        private boolean canAdvanceToVote(int total) {
+            if (total < 2) return false; // 인원 부족
+            if (!lobbyState.isEveryoneReady()) return false; // 준비 미완료
+            // 팀/선택 확인 및 밸런스 체크
+            int red = 0, blue = 0;
+            for (int sid : registry.getSessionIds()) {
+                int team = registry.getCharacterTeam(sid);
+                if (team < 0) return false; // 팀 미선택
+                if (team == com.fpsgame.common.GameEnums.Team.RED.ordinal()) red++;
+                else if (team == com.fpsgame.common.GameEnums.Team.BLUE.ordinal()) blue++;
+            }
+            return Math.abs(red - blue) <= 1;
+        }
+
+        private void logGateReason(int total, int readyCount) {
+            if (total < 2) { registry.log("[GATE] Not enough players: total=" + total); return; }
+            if (readyCount != total) { registry.log("[GATE] Not everyone ready: " + readyCount + "/" + total); return; }
+            int red = 0, blue = 0;
+            for (int sid : registry.getSessionIds()) {
+                int team = registry.getCharacterTeam(sid);
+                if (team < 0) { registry.log("[GATE] Missing team selection for sid=" + sid); return; }
+                if (team == com.fpsgame.common.GameEnums.Team.RED.ordinal()) red++;
+                else if (team == com.fpsgame.common.GameEnums.Team.BLUE.ordinal()) blue++;
+            }
+            if (Math.abs(red - blue) > 1) {
+                registry.log("[GATE] Unbalanced teams: red=" + red + " blue=" + blue);
+            }
+        }
+
+        private synchronized void startVoteTimerOnce() {
+            final long dl = this.voteDeadlineMs;
+            // 스레드 하나만
+            new Thread(() -> {
+                long now = System.currentTimeMillis();
+                long wait = Math.max(0L, dl - now);
+                try { Thread.sleep(wait); } catch (InterruptedException ignored) { Thread.currentThread().interrupt(); }
+                // 타임아웃 시점에서 아직 VOTE 페이즈로 간주하고 맵 결정
+                decideAndBroadcastMap();
+            }, "VoteDeadlineTimer").start();
+        }
+
+        private void decideAndBroadcastMap() {
+            com.fpsgame.common.GameEnums.MapId winnerMap = gameServer.currentVoteWinner();
+            int winner = winnerMap.ordinal();
+            int[] wh = dimsForMap(winner);
+
+            registry.log("[DECIDE] Map winner: " + winner + " (" + winnerMap.name() + ")");
+
+            registry.setWorldSize(wh[0], wh[1]);
+            registry.setMapId(winner);
+            registry.log("[UPDATE] World size set to " + wh[0] + "x" + wh[1] + " for map=" + winner);
+
+            try {
+                registry.broadcastSystemChat("[SYSTEM] mapSelected=" + winner + ", World=" + wh[0] + "x" + wh[1]);
+                registry.log("[BC] Map selection broadcast sent");
+            } catch (Throwable t) {
+                registry.log("[ERROR] Map selection broadcast failed: " + t);
+            }
         }
     }
 

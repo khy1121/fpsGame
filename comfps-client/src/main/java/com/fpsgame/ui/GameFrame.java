@@ -1,13 +1,16 @@
 package com.fpsgame.client.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
@@ -21,6 +24,7 @@ import javax.swing.JSpinner;
 import javax.swing.JSplitPane;
 import javax.swing.JTextField;
 import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
@@ -61,12 +65,17 @@ public class GameFrame extends JFrame implements ClientController.Ui {
 
     // 하단: READY/팀/캐릭터/맵 선택
     private final JToggleButton readyToggle = new JToggleButton("READY");
-    private final JComboBox<String> teamCombo = new JComboBox<>(new String[]{"Team 0","Team 1","Team 2"});
-    private final JComboBox<String> charCombo = new JComboBox<>(new String[]{"Char 0","Char 1","Char 2","Char 3"});
-    private final JComboBox<String> mapCombo  = new JComboBox<>(new String[]{"Map 0","Map 1","Map 2"});
+    private final JComboBox<String> teamCombo = new JComboBox<>(new String[]{"Team 0","Team 1"});
+    private final JComboBox<String> charCombo = new JComboBox<>(new String[]{"Char 0","Char 1"});
+    private final JComboBox<String> mapCombo  = new JComboBox<>(new String[]{"Map 0","Map 1"});
     private final JButton selectBtn = new JButton("Select");
     private final JButton voteBtn = new JButton("Vote");
     private final JButton pingBtn = new JButton("Ping");
+
+    // B-key Character overlay
+    private final com.fpsgame.client.ui.CharacterSelectPanel charSelectPanel = new com.fpsgame.client.ui.CharacterSelectPanel();
+    private final JPanel overlayGlass = new JPanel(new BorderLayout());
+    private volatile int currentPhaseCode = -1;
 
     public GameFrame() {
         super("FPS Client - GameFrame");
@@ -129,7 +138,14 @@ public class GameFrame extends JFrame implements ClientController.Ui {
 
         updateUiState(false);
         // 맵 콤보를 실제 Enum 이름으로 갱신
-        try { updateMapComboFromEnums(); } catch (Throwable ignore) {}
+        try {
+            updateTeamComboFromEnums();
+            updateCharComboFromEnums();
+            updateMapComboFromEnums();
+        } catch (Throwable ignore) {}
+
+        // 캐릭터 선택 오버레이 준비 및 B 키 바인딩
+        try { setupCharacterOverlay(); setupKeyBindings(); } catch (Throwable ignore) {}
     }
 
     /** GameEnums.MapId 값을 기반으로 맵 콤보 내용을 갱신 */
@@ -148,6 +164,24 @@ public class GameFrame extends JFrame implements ClientController.Ui {
         p.add((Component)c, BorderLayout.CENTER);
         p.setBorder(BorderFactory.createTitledBorder("Chat"));
         return p;
+    }
+
+    /** GameEnums.Team 값을 기반으로 팀 콤보 내용을 갱신 */
+    private void updateTeamComboFromEnums() {
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        GameEnums.Team[] teams = GameEnums.Team.values();
+        for (GameEnums.Team t : teams) model.addElement(t.displayName());
+        teamCombo.setModel(model);
+        teamCombo.setSelectedIndex(0);
+    }
+
+    /** GameEnums.CharacterId 값을 기반으로 캐릭터 콤보 내용을 갱신 */
+    private void updateCharComboFromEnums() {
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        GameEnums.CharacterId[] chars = GameEnums.CharacterId.values();
+        for (GameEnums.CharacterId c : chars) model.addElement(c.displayName());
+        charCombo.setModel(model);
+        charCombo.setSelectedIndex(0);
     }
 
     // ================= 네트워크 연결 처리 =================
@@ -273,7 +307,10 @@ public class GameFrame extends JFrame implements ClientController.Ui {
     }
 
     @Override public void onPhaseUpdate(int phaseCode) {
+        this.currentPhaseCode = phaseCode;
         hud.updatePhase(phaseCode);
+        // 플레이 페이즈가 아니면 오버레이 숨김
+        if (!isGameplayPhase()) hideCharacterOverlay();
     }
 
     @Override public void onCountdown(int seconds) {
@@ -301,6 +338,77 @@ public class GameFrame extends JFrame implements ClientController.Ui {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new GameFrame().setVisible(true));
+    }
+
+    // ================= B-key 캐릭터 선택 오버레이 =================
+
+    private void setupCharacterOverlay() {
+        // 반투명 글래스 페인 위에 캐릭터 선택 패널 표시
+        overlayGlass.setOpaque(true);
+        overlayGlass.setBackground(new Color(0, 0, 0, 160));
+
+        JPanel centered = new JPanel(new BorderLayout());
+        centered.setOpaque(false);
+        // 기본 캐릭터 목록
+        try { charSelectPanel.withDefaultCharacters(); } catch (Throwable ignore) {}
+
+        // 선택시 서버로 전송하고 오버레이 닫기
+        charSelectPanel.onSendSelection(name -> {
+            if (name == null || name.isBlank()) return;
+            GameEnums.CharacterId cid = GameEnums.CharacterId.fromName(name);
+            if (cid == null) return;
+            int charIndex = cid.ordinal();
+            int teamIndex = Math.max(0, teamCombo.getSelectedIndex());
+            try {
+                controller.sendSetSelection(teamIndex, charIndex);
+                // 콤보박스 동기화
+                if (charIndex >= 0 && charIndex < charCombo.getItemCount()) {
+                    charCombo.setSelectedIndex(charIndex);
+                }
+            } catch (Exception ex) {
+                // 조용히 무시(네트워크 오류는 별도 다이얼로그로 처리됨)
+            }
+            hideCharacterOverlay();
+        });
+
+        centered.add(charSelectPanel, BorderLayout.CENTER);
+        overlayGlass.add(centered, BorderLayout.CENTER);
+
+        setGlassPane(overlayGlass);
+        overlayGlass.setVisible(false);
+    }
+
+    private void setupKeyBindings() {
+        // 포커스 무관하게 B 키로 토글
+        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(KeyStroke.getKeyStroke('B'), "toggle-char-overlay");
+        getRootPane().getActionMap().put("toggle-char-overlay", new AbstractAction() {
+            @Override public void actionPerformed(ActionEvent e) {
+                toggleCharacterOverlay();
+            }
+        });
+    }
+
+    private boolean isGameplayPhase() {
+        try {
+            GameEnums.Phase[] phases = GameEnums.Phase.values();
+            if (currentPhaseCode < 0 || currentPhaseCode >= phases.length) return false;
+            GameEnums.Phase p = phases[currentPhaseCode];
+            return p == GameEnums.Phase.COUNTDOWN || p == GameEnums.Phase.ROUND_RUNNING;
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
+
+    private void toggleCharacterOverlay() {
+        if (!isGameplayPhase()) return; // 게임 중에만 허용
+        overlayGlass.setVisible(!overlayGlass.isVisible());
+        // 글래스페인이 보일 때 포커스/입력은 오버레이가 받도록
+        if (overlayGlass.isVisible()) overlayGlass.requestFocusInWindow();
+    }
+
+    private void hideCharacterOverlay() {
+        if (overlayGlass.isVisible()) overlayGlass.setVisible(false);
     }
 }
 

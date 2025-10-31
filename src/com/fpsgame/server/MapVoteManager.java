@@ -1,10 +1,10 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.GameEnums;
-
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.fpsgame.common.GameEnums;
 
 /**
  * 맵 투표 집계기
@@ -40,23 +40,26 @@ public final class MapVoteManager {
         return out;
     }
 
-    /** 승자 계산(다수결). 동률이면 기본 맵 */
+    /** 승자 계산(다수결). 동률이면 "투표된 맵들 중에서 랜덤" 선택, 아무도 없으면 기본 맵 */
     public GameEnums.MapId winnerOrDefault() {
         EnumMap<GameEnums.MapId, Integer> c = countsSnapshot();
-        GameEnums.MapId best = null; int bestCnt = -1;
-        for (Map.Entry<GameEnums.MapId, Integer> e : c.entrySet()) {
-            int cnt = e.getValue();
-            if (cnt > bestCnt) { bestCnt = cnt; best = e.getKey(); }
-            else if (cnt == bestCnt && best != null) { best = tieBreak(best, e.getKey()); }
-        }
-        return (best == null) ? GameEnums.MapId.defaultMap() : best;
-    }
+        int max = 0;
+        for (Integer v : c.values()) max = Math.max(max, v == null ? 0 : v);
 
-    /** 타이브레이커: 기본 맵 우선, 아니면 enum 선언 순서 */
-    private static GameEnums.MapId tieBreak(GameEnums.MapId a, GameEnums.MapId b) {
-        GameEnums.MapId def = GameEnums.MapId.defaultMap();
-        if (a == def) return a; if (b == def) return b;
-        return a.ordinal() <= b.ordinal() ? a : b;
+        // 투표가 전혀 없으면 기본 맵
+        if (max <= 0) return GameEnums.MapId.defaultMap();
+
+        // 최다 득표 맵들을 수집 후 랜덤 선택
+        java.util.ArrayList<GameEnums.MapId> top = new java.util.ArrayList<>();
+        Integer maxI = Integer.valueOf(max);
+        for (Map.Entry<GameEnums.MapId, Integer> e : c.entrySet()) {
+            Integer vv = e.getValue();
+            if (vv != null && vv.equals(maxI)) top.add(e.getKey());
+        }
+        if (top.isEmpty()) return GameEnums.MapId.defaultMap();
+
+        int idx = java.util.concurrent.ThreadLocalRandom.current().nextInt(top.size());
+        return top.get(idx);
     }
 }
 
