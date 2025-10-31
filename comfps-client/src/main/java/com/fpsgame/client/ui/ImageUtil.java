@@ -20,20 +20,35 @@ public final class ImageUtil {
 
     public static BufferedImage loadResource(Class<?> base, String resourcePath) {
         if (resourcePath == null || resourcePath.isBlank()) return null;
+        // 1) base 클래스 기준으로 시도
         try (InputStream in = base.getResourceAsStream(resourcePath)) {
-            if (in == null) {
-                System.err.println("Resource not found: " + resourcePath + " (from " + base.getName() + ")");
-                return null;
+            if (in != null) {
+                BufferedImage img = ImageIO.read(in);
+                return img;
             }
-            BufferedImage img = ImageIO.read(in);
-            if (img != null) {
-                System.out.println("Loaded resource: " + resourcePath + " (" + img.getWidth() + "x" + img.getHeight() + ")");
-            }
-            return img;
-        } catch (IOException e) {
-            System.err.println("Failed to load resource: " + resourcePath + " - " + e.getMessage());
-            return null;
+        } catch (IOException ignore) {}
+
+        // 2) 선행 슬래시 제거 후 재시도
+        if (resourcePath.startsWith("/")) {
+            String noSlash = resourcePath.substring(1);
+            try (InputStream in = base.getResourceAsStream(noSlash)) {
+                if (in != null) {
+                    BufferedImage img = ImageIO.read(in);
+                    return img;
+                }
+            } catch (IOException ignore) {}
         }
+
+        // 3) ContextClassLoader 기준으로 시도
+        try (InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(resourcePath.startsWith("/") ? resourcePath.substring(1) : resourcePath)) {
+            if (in != null) {
+                BufferedImage img = ImageIO.read(in);
+                return img;
+            }
+        } catch (IOException ignore) {}
+
+        System.err.println("Resource not found: " + resourcePath + " (base=" + base.getName() + ")");
+        return null;
     }
 
     public static BufferedImage scale(BufferedImage src, int w, int h) {

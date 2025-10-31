@@ -298,13 +298,58 @@ public final class ServerMain {
                 float dy = (float)Math.sin(aim);
                 com.fpsgame.common.Vec2 dir = new com.fpsgame.common.Vec2(dx, dy);
 
+                String actionName = switch (actionType) {
+                    case 0 -> "BasicAttack";
+                    case 1 -> "TacticalAbility";
+                    case 2 -> "UltimateAbility";
+                    default -> "Unknown";
+                };
+
+                // 능력 발동 전 상태 확인
+                boolean canUse = character.canUseAbilities();
+                boolean ready = false;
+                float cooldown = 0f;
+                
                 switch (actionType) {
-                    case 0 -> character.useBasicAbility(dir);
-                    case 1 -> character.useTacticalAbility(dir);
-                    case 2 -> character.useUltimateAbility(dir);
+                    case 0 -> {
+                        if (character.getBasicAbility() != null) {
+                            ready = character.getBasicAbility().isReady();
+                            cooldown = character.getBasicAbility().getCooldown();
+                            if (canUse && ready) {
+                                character.useBasicAbility(dir);
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " ACTIVATED aim=" + String.format("%.2f", aim));
+                            } else {
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " DENIED (canUse=" + canUse + " ready=" + ready + " cd=" + String.format("%.2f", cooldown) + "s)");
+                            }
+                        }
+                    }
+                    case 1 -> {
+                        if (character.getTacticalAbility() != null) {
+                            ready = character.getTacticalAbility().isReady();
+                            cooldown = character.getTacticalAbility().getCooldown();
+                            if (canUse && ready) {
+                                character.useTacticalAbility(dir);
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " ACTIVATED aim=" + String.format("%.2f", aim));
+                            } else {
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " DENIED (canUse=" + canUse + " ready=" + ready + " cd=" + String.format("%.2f", cooldown) + "s)");
+                            }
+                        }
+                    }
+                    case 2 -> {
+                        if (character.getUltimateAbility() != null) {
+                            ready = character.getUltimateAbility().isReady();
+                            cooldown = character.getUltimateAbility().getCooldown();
+                            float charge = character.getUltimateCharge();
+                            if (canUse && ready && charge >= 100f) {
+                                character.useUltimateAbility(dir);
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " ACTIVATED aim=" + String.format("%.2f", aim) + " charge=" + String.format("%.1f", charge));
+                            } else {
+                                registry.log("[ACTION] sid=" + sessionId + " " + actionName + " DENIED (canUse=" + canUse + " ready=" + ready + " cd=" + String.format("%.2f", cooldown) + "s charge=" + String.format("%.1f", charge) + "%)");
+                            }
+                        }
+                    }
                     default -> registry.log("[ACTION] Unknown actionType=" + actionType + " from sid=" + sessionId);
                 }
-                registry.log("[ACTION] sid=" + sessionId + " actionType=" + actionType + " aim=" + aim);
             } catch (Throwable t) {
                 registry.log("[ERROR] Failed to process ACTION from session " + sessionId + ": " + t);
             }
@@ -387,6 +432,7 @@ public final class ServerMain {
         // 기본 포트/바인드
         int port = 7777;
         String bind = null; // null이면 AnyAddr
+        boolean nonInteractiveFlag = false; // 명시적 비대화식 모드
 
         for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
@@ -399,6 +445,10 @@ public final class ServerMain {
                 case "-b":
                     if (i + 1 >= args.length) usageAndExit();
                     bind = args[++i];
+                    break;
+                case "--noninteractive":
+                case "--daemon":
+                    nonInteractiveFlag = true;
                     break;
                 case "--help":
                 case "-h":
@@ -480,9 +530,11 @@ public final class ServerMain {
         sync.setBounds(0, worldW, 0, worldH);
         serverReg.startSnapshotLoop(20.0);
 
-        // 종료 훅
+        // 종료 훅 + 종료 대기 래치
+        final java.util.concurrent.CountDownLatch shutdownLatch = new java.util.concurrent.CountDownLatch(1);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             try { server.close(); } catch (Exception ignore) {}
+            try { shutdownLatch.countDown(); } catch (Throwable ignore) {}
         }, "shutdown-hook"));
 
         //
@@ -493,9 +545,25 @@ public final class ServerMain {
         System.out.println("  stop          - stop server");
         System.out.println();
 
+        boolean interactive = true;
+        // 명시 플래그가 있으면 콘솔 루프를 건너뛰고 비대화식으로 유지
+        if (nonInteractiveFlag) {
+            System.out.println("[Server] Non-interactive mode (--noninteractive). Press Ctrl+C to stop.");
+            // 메인 스레드는 종료 신호까지 대기
+            try { shutdownLatch.await(); } catch (InterruptedException ignored) {}
+            return;
+        }
+
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-            String line;
-            while ((line = br.readLine()) != null) {
+            // stdin이 닫혀 있으면 즉시 비대화식으로 전환
+            String line = br.readLine();
+            if (line == null) {
+                interactive = false;
+                System.out.println("[Server] No stdin detected. Running in non-interactive mode. Press Ctrl+C to stop.");
+                try { shutdownLatch.await(); } catch (InterruptedException ignored) {}
+                return;
+            }
+            do {
                 line = line.trim();
                 if (line.isEmpty()) continue;
 
@@ -523,11 +591,13 @@ public final class ServerMain {
                 } else {
                     System.out.println("Unknown command: " + line);
                 }
-            }
+            } while ((line = br.readLine()) != null);
         } catch (Exception e) {
             System.err.println("Console loop error: " + e);
         } finally {
-            server.close();
+            if (interactive) {
+                server.close();
+            }
         }
     }
 

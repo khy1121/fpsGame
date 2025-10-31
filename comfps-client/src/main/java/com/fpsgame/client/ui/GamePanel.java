@@ -42,6 +42,14 @@ public class GamePanel extends JPanel {
     // 캐릭터 이미지 캐시 (characterId -> 이미지)
     private final Map<Integer, BufferedImage> characterImages = new HashMap<>();
 
+    // 미니맵 설정
+    private static final int MINIMAP_MAX_W = 220;
+    private static final int MINIMAP_MAX_H = 160;
+    private static final int MINIMAP_MARGIN = 12;
+    private static final int MINIMAP_DOT_PLAYER = 4;
+    private static final int MINIMAP_DOT_PROJECTILE = 3;
+    private volatile boolean minimapEnabled = true;
+
     // Input state
     private volatile boolean keyW, keyA, keyS, keyD, keyE, keyQ;
     private volatile Float aimRad = null; // nullable until computed
@@ -66,6 +74,7 @@ public class GamePanel extends JPanel {
                     case KeyEvent.VK_A -> keyA = true;
                     case KeyEvent.VK_S -> keyS = true;
                     case KeyEvent.VK_D -> keyD = true;
+                    case KeyEvent.VK_M -> minimapEnabled = !minimapEnabled; // 토글
                     case KeyEvent.VK_E -> {
                         keyE = true;
                         ActionSender as = actionSender;
@@ -146,18 +155,21 @@ public class GamePanel extends JPanel {
         
         if (mapName == null) {
             mapBackground = null;
+            System.err.println("[GamePanel] Unknown map ID: " + mapId);
             return;
         }
+        
+        System.out.println("[GamePanel] Loading map background: " + mapName + " (mapId=" + mapId + ")");
         
         // 리소스에서 맵 이미지 로드
         BufferedImage img = ImageUtil.loadResource(GamePanel.class, "/assets/maps/" + mapName + ".png");
         if (img == null) img = ImageUtil.loadResource(GamePanel.class, "/assets/maps/" + mapName + ".jpg");
-        if (img == null) img = ImageUtil.loadFile("assets/maps/" + mapName + ".png");
-        if (img == null) img = ImageUtil.loadFile("assets/maps/" + mapName + ".jpg");
         
         mapBackground = img;
         if (img == null) {
-            System.err.println("Failed to load map background: " + mapName);
+            System.err.println("[GamePanel] Failed to load map background: " + mapName);
+        } else {
+            System.out.println("[GamePanel] Map loaded: " + mapName + " (" + img.getWidth() + "x" + img.getHeight() + ")");
         }
     }
     
@@ -180,17 +192,23 @@ public class GamePanel extends JPanel {
             default -> null;
         };
         
-        if (charName == null) return null;
+        if (charName == null) {
+            System.err.println("[GamePanel] Unknown character ID: " + characterId);
+            return null;
+        }
+        
+        System.out.println("[GamePanel] Loading character: " + charName + " (id=" + characterId + ")");
         
         BufferedImage img = ImageUtil.loadResource(GamePanel.class, "/assets/characters/" + charName + ".png");
         if (img == null) img = ImageUtil.loadResource(GamePanel.class, "/assets/characters/" + charName + ".jpg");
-        if (img == null) img = ImageUtil.loadFile("assets/characters/" + charName + ".png");
-        if (img == null) img = ImageUtil.loadFile("assets/characters/" + charName + ".jpg");
         
         if (img != null) {
             // 흰색 배경 제거
             img = ImageUtil.whiteToTransparent(img, 20);
             characterImages.put(characterId, img);
+            System.out.println("[GamePanel] Character loaded: " + charName + " (" + img.getWidth() + "x" + img.getHeight() + ")");
+        } else {
+            System.err.println("[GamePanel] Failed to load character: " + charName);
         }
         
         return img;
@@ -202,6 +220,7 @@ public class GamePanel extends JPanel {
         for (SnapshotV2.Entry e : list) map.put(e.id, e);
         players.clear();
         players.putAll(map);
+        // Quiet: avoid console spam per tick
         repaint();
     }
 
@@ -267,6 +286,12 @@ public class GamePanel extends JPanel {
             g2.fillRect((int)ox, (int)oy, (int)(worldW * s), (int)(worldH * s));
         }
 
+        // 디버깅: 플레이어 수 표시
+        if (!players.isEmpty()) {
+            g2.setColor(Color.YELLOW);
+            g2.drawString("Players: " + players.size(), 10, 20);
+        }
+
         // 투사체 렌더링
         g2.setStroke(new BasicStroke(2f));
         g2.setColor(new Color(0xffd54f));
@@ -307,6 +332,56 @@ public class GamePanel extends JPanel {
             g2.fillOval(px - 3, py - 15, 6, 6);
         }
 
+        // 미니맵 오버레이
+        drawMinimap(g2, w, h);
+
         g2.dispose();
+    }
+
+    // 우상단 오버레이 미니맵 렌더링
+    private void drawMinimap(Graphics2D g2, int panelW, int panelH) {
+        if (!minimapEnabled) return;
+        if (worldW <= 0 || worldH <= 0) return;
+
+        // 월드 비율 유지하면서 최대 크기 안에 맞춤
+        double msx = MINIMAP_MAX_W / (double) worldW;
+        double msy = MINIMAP_MAX_H / (double) worldH;
+        double ms = Math.min(msx, msy);
+        int mmW = Math.max(40, (int) Math.round(worldW * ms));
+        int mmH = Math.max(40, (int) Math.round(worldH * ms));
+
+        int x0 = panelW - MINIMAP_MARGIN - mmW;
+        int y0 = MINIMAP_MARGIN;
+
+        // 배경 (투명도)
+        g2.setColor(new Color(0x0b0d12, true));
+        g2.fillRect(x0 - 2, y0 - 2, mmW + 4, mmH + 4);
+        g2.setColor(new Color(0x20252e));
+        g2.fillRect(x0, y0, mmW, mmH);
+        g2.setColor(new Color(0x445062));
+        g2.setStroke(new BasicStroke(1.5f));
+        g2.drawRect(x0, y0, mmW, mmH);
+
+        // 투사체
+        g2.setColor(new Color(0xffd54f));
+        for (ProjectilesV2.Entry p : projectiles) {
+            if (!p.active) continue;
+            int mx = x0 + (int) Math.round(p.x * ms);
+            int my = y0 + (int) Math.round(p.y * ms);
+            g2.fillOval(mx - MINIMAP_DOT_PROJECTILE/2, my - MINIMAP_DOT_PROJECTILE/2, MINIMAP_DOT_PROJECTILE, MINIMAP_DOT_PROJECTILE);
+        }
+
+        // 플레이어
+        for (SnapshotV2.Entry e : players.values()) {
+            int mx = x0 + (int) Math.round(e.x * ms);
+            int my = y0 + (int) Math.round(e.y * ms);
+            Color teamColor = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
+            g2.setColor(teamColor);
+            g2.fillOval(mx - MINIMAP_DOT_PLAYER/2, my - MINIMAP_DOT_PLAYER/2, MINIMAP_DOT_PLAYER, MINIMAP_DOT_PLAYER);
+            if (e.id == myId) {
+                g2.setColor(Color.WHITE);
+                g2.drawOval(mx - MINIMAP_DOT_PLAYER/2 - 2, my - MINIMAP_DOT_PLAYER/2 - 2, MINIMAP_DOT_PLAYER + 4, MINIMAP_DOT_PLAYER + 4);
+            }
+        }
     }
 }

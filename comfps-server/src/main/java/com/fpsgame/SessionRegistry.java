@@ -9,9 +9,11 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.fpsgame.common.GameEnums;
 import com.fpsgame.common.ProjectilesV2;
 import com.fpsgame.common.Protocol;
 import com.fpsgame.common.Vec2;
+import com.fpsgame.common.World;
 import com.fpsgame.common.character.Character;
 import com.fpsgame.common.character.CharacterFactory;
 import com.fpsgame.common.character.projectile.Projectile;
@@ -41,6 +43,9 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
     
     // Nickname mapping
     private final ConcurrentHashMap<Integer, String> nicknames = new ConcurrentHashMap<>();
+    
+    // World instance for collision detection
+    private volatile World world;
     
     // LobbyState reference (외부에서 설정)
     private volatile LobbyState lobbyState;
@@ -108,6 +113,12 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
                         }
                     } catch (Exception e) {
                         log("snapshot loop error: " + e.getMessage());
+                    }
+                    // ProjectileManager update: process all projectiles (collision, lifetime, etc.)
+                    try {
+                        ProjectileManager.getInstance().update(dt);
+                    } catch (Exception e) {
+                        log("projectile update error: " + e.getMessage());
                     }
                     // Projectiles v2 broadcast (id/type/active/x/y)
                     try {
@@ -363,7 +374,22 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
 
     public void setMapId(int mapId) {
         this.mapId = Math.max(0, mapId);
+        
+        // Create World instance with walls for collision detection
+        GameEnums.MapId mapEnum = switch (mapId) {
+            case 0 -> GameEnums.MapId.TERMINAL;
+            case 1 -> GameEnums.MapId.NEON_CITY;
+            case 2 -> GameEnums.MapId.FOREST_OUTPOST;
+            default -> GameEnums.MapId.TERMINAL;
+        };
+        this.world = new World(mapEnum, new Vec2(worldW, worldH));
+        log("[World] Created world for map " + mapEnum + " (" + worldW + "x" + worldH + ")");
+        
         broadcastWelcomeAll();
+    }
+    
+    public World getWorld() {
+        return world;
     }
 
     // Input forwarding

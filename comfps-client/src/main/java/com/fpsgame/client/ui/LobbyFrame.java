@@ -553,11 +553,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                     break;
                     
                 case 1: // VOTE
-                    showCenterCard(CARD_VOTE);
-                    tabbedPane.setSelectedIndex(0); // Map Info 탭
+                    // Map Vote는 좌측 상단의 Map Info 탭(맵 카드)에서 진행
+                    // 별도의 CARD_VOTE로 전환하면 맵 카드가 사라져 투표가 불가능하므로
+                    // 로비 카드(CARD_LOBBY)를 유지한 채 Map Info 탭을 선택한다.
+                    showCenterCard(CARD_LOBBY);
+                    tabbedPane.setSelectedIndex(0); // Map Info 탭 (맵 카드 표시)
                     chatPanel.appendSystemMessage("=============================");
                     chatPanel.appendSystemMessage("  🗳️ 맵 투표 시작!");
-                    chatPanel.appendSystemMessage("  원하는 맵을 클릭하여 투표하세요");
+                    chatPanel.appendSystemMessage("  상단의 Map Info에서 원하는 맵 카드를 클릭하세요");
                     chatPanel.appendSystemMessage("=============================");
                     break;
                     
@@ -669,9 +672,13 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             int[] redCount = {0};
             int[] blueCount = {0};
             
-            if (status.players != null) {
+        if (status.players != null) {
                 for (Protocol.PlayerInfo player : status.players) {
-                    String displayName = player.nickname + (player.ready ? " ✓" : "");
+            // 닉네임이 비어있거나 기본값(ALL)인 경우 플레이어 ID로 대체
+            String baseName = (player.nickname == null || player.nickname.isBlank() || "ALL".equalsIgnoreCase(player.nickname))
+                ? ("Player " + player.sessionId)
+                : player.nickname;
+            String displayName = baseName + (player.ready ? " ✓" : "");
                     Color nameColor = player.ready ? Color.GREEN : Color.WHITE;
                     
                     if (player.team == 0 && redCount[0] < 5) { // RED 팀

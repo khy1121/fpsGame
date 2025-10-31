@@ -240,12 +240,12 @@ public class CharacterSelectPanel extends JPanel {
             if (target == null) return;
             String base = id == null ? "" : id.trim();
             BufferedImage img = null;
-            // 1) 프로젝트 로컬 assets 경로 우선
-            img = com.fpsgame.client.ui.ImageUtil.loadFile("assets/characters/" + base + ".png");
-            if (img == null) img = com.fpsgame.client.ui.ImageUtil.loadFile("assets/characters/" + base + ".jpg");
-            // 2) 클래스패스 리소스
-            if (img == null) img = com.fpsgame.client.ui.ImageUtil.loadResource(CharacterSelectPanel.class, "/assets/characters/" + base + ".png");
+            // 1) 클래스패스 리소스 우선 (Maven/IDE 실행 모두 호환)
+            img = com.fpsgame.client.ui.ImageUtil.loadResource(CharacterSelectPanel.class, "/assets/characters/" + base + ".png");
             if (img == null) img = com.fpsgame.client.ui.ImageUtil.loadResource(CharacterSelectPanel.class, "/assets/characters/" + base + ".jpg");
+            // 2) 프로젝트 로컬 assets 경로 (fallback)
+            if (img == null) img = com.fpsgame.client.ui.ImageUtil.loadFile("assets/characters/" + base + ".png");
+            if (img == null) img = com.fpsgame.client.ui.ImageUtil.loadFile("assets/characters/" + base + ".jpg");
             if (img != null) {
                 img = com.fpsgame.client.ui.ImageUtil.whiteToTransparent(img, 20);
                 img = com.fpsgame.client.ui.ImageUtil.scale(img, w, h);

@@ -64,8 +64,9 @@ public class TcpServer implements Closeable {
         if (backlog > 0) this.serverSocket.bind(addr, backlog); else this.serverSocket.bind(addr);
 
         running.set(true);
-        acceptThread = new Thread(this::acceptLoop, "TcpServer-Accept-" + port);
-        acceptThread.setDaemon(true);
+    acceptThread = new Thread(this::acceptLoop, "TcpServer-Accept-" + port);
+    // Non-daemon so JVM stays alive even if main thread exits in non-interactive mode
+    acceptThread.setDaemon(false);
         acceptThread.start();
 
         registry.log("TCP server started on " + addr);

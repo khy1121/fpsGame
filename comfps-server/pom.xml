@@ -61,6 +61,8 @@
                 <version>3.1.0</version>
                 <configuration>
                     <mainClass>com.fpsgame.server.ServerMain</mainClass>
+                    <!-- Keep background threads alive; we handle shutdown via hook -->
+                    <cleanupDaemonThreads>false</cleanupDaemonThreads>
                 </configuration>
             </plugin>
         </plugins>
@@ -91,6 +93,24 @@
                         <artifactId>exec-maven-plugin</artifactId>
                         <configuration>
                             <mainClass>com.fpsgame.server.MainServer</mainClass>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <profile>
+            <id>daemon</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <configuration>
+                            <mainClass>com.fpsgame.server.ServerMain</mainClass>
+                            <arguments>
+                                <argument>--noninteractive</argument>
+                            </arguments>
                         </configuration>
                     </plugin>
                 </plugins>
