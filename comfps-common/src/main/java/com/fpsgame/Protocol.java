@@ -1,6 +1,11 @@
 package com.fpsgame.common;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
+import java.io.DataInputStream;
+import java.io.DataOutput;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -144,10 +149,104 @@ public final class Protocol {
     public static final class RoundResult { public final int winnerTeam, blueRounds, redRounds; public final boolean matchEnded; public RoundResult(int w,int b,int r,boolean m){ winnerTeam=w; blueRounds=b; redRounds=r; matchEnded=m; } }
     public static RoundResult parseRoundResult(byte[] p){ return new RoundResult(getU8(p,0), getU8(p,1), getU8(p,2), getU8(p,3)!=0); }
 
-    // Optional READY_STATUS helpers
-    public static byte[] buildReadyStatusPayload(int ready, int total){ ByteArrayOutputStream baos=new ByteArrayOutputStream(2); putByte(baos, Math.max(0, ready)); putByte(baos, Math.max(0, total)); return baos.toByteArray(); }
-    public static final class ReadyStatus { public final int ready, total; public ReadyStatus(int r,int t){ ready=r; total=t; } }
-    public static ReadyStatus parseReadyStatus(byte[] p){ return new ReadyStatus(getU8(p,0), getU8(p,1)); }
+    // Optional READY_STATUS helpers - 플레이어 리스트 포함 버전
+    public static final class PlayerInfo {
+        public final int sessionId;
+        public final String nickname;
+        public final int team;        // -1=미선택, 0=RED, 1=BLUE
+        public final int character;   // -1=미선택, 0~N=캐릭터
+        public final boolean ready;
+        
+        public PlayerInfo(int sessionId, String nickname, int team, int character, boolean ready) {
+            this.sessionId = sessionId;
+            this.nickname = nickname;
+            this.team = team;
+            this.character = character;
+            this.ready = ready;
+        }
+    }
+    
+    public static final class ReadyStatus {
+        public final int ready, total;
+        public final java.util.List<PlayerInfo> players;
+        
+        public ReadyStatus(int r, int t) {
+            this.ready = r;
+            this.total = t;
+            this.players = new java.util.ArrayList<>();
+        }
+        
+        public ReadyStatus(int r, int t, java.util.List<PlayerInfo> players) {
+            this.ready = r;
+            this.total = t;
+            this.players = players != null ? players : new java.util.ArrayList<>();
+        }
+    }
+    
+    // 레거시 버전 (플레이어 리스트 없음)
+    public static byte[] buildReadyStatusPayload(int ready, int total) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(2);
+        putByte(baos, Math.max(0, ready));
+        putByte(baos, Math.max(0, total));
+        return baos.toByteArray();
+    }
+    
+    // 새 버전 (플레이어 리스트 포함)
+    public static byte[] buildReadyStatusPayload(int ready, int total, java.util.List<PlayerInfo> players) {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(128);
+        putByte(baos, Math.max(0, ready));
+        putByte(baos, Math.max(0, total));
+        
+        // 플레이어 수
+        int playerCount = (players != null) ? players.size() : 0;
+        putByte(baos, playerCount);
+        
+        // 각 플레이어 정보
+        if (players != null) {
+            for (PlayerInfo p : players) {
+                putInt(baos, p.sessionId);
+                putUtf8(baos, p.nickname);
+                putByte(baos, p.team);
+                putByte(baos, p.character);
+                putByte(baos, p.ready ? 1 : 0);
+            }
+        }
+        
+        return baos.toByteArray();
+    }
+    
+    // 파싱: 플레이어 리스트 포함 여부 자동 판단
+    public static ReadyStatus parseReadyStatus(byte[] p) {
+        int ready = getU8(p, 0);
+        int total = getU8(p, 1);
+        
+        // 레거시 버전 (2바이트만)
+        if (p.length <= 2) {
+            return new ReadyStatus(ready, total);
+        }
+        
+        // 새 버전 (플레이어 리스트 포함)
+        int playerCount = getU8(p, 2);
+        java.util.List<PlayerInfo> players = new java.util.ArrayList<>();
+        int offset = 3;
+        
+        for (int i = 0; i < playerCount && offset < p.length; i++) {
+            int sessionId = getInt(p, offset);
+            offset += 4;
+            
+            Pair<String, Integer> nickPair = getUtf8(p, offset);
+            String nickname = nickPair.a;
+            offset = nickPair.b;
+            
+            int team = getU8(p, offset++);
+            int character = getU8(p, offset++);
+            boolean isReady = getU8(p, offset++) != 0;
+            
+            players.add(new PlayerInfo(sessionId, nickname, team, character, isReady));
+        }
+        
+        return new ReadyStatus(ready, total, players);
+    }
 
     // Safe sender
     public static final class SafeSender {

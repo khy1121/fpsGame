@@ -25,6 +25,16 @@ public class TcpServer implements Closeable {
     private final int backlog;
     private final String bindAddress;
 
+    /** Constructor with external SessionRegistry (recommended). */
+    public TcpServer(int port, DefaultServerRouter.Hooks hooks, SessionRegistry registry, int backlog, String bindAddress) {
+        this.port = port;
+        this.hooks = Objects.requireNonNull(hooks, "hooks");
+        this.registry = Objects.requireNonNull(registry, "registry");
+        this.backlog = backlog;
+        this.bindAddress = bindAddress;
+    }
+
+    /** Legacy constructor: creates its own SessionRegistry. */
     public TcpServer(int port, DefaultServerRouter.Hooks hooks, int backlog, String bindAddress) {
         this.port = port;
         this.hooks = Objects.requireNonNull(hooks, "hooks");

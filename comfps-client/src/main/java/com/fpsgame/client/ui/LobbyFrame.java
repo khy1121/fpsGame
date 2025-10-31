@@ -291,7 +291,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         toggleChatBtn.setFocusPainted(false);
         toggleChatBtn.setFont(new Font("맑은 고딕", Font.BOLD, 12));
         toggleChatBtn.setBackground(new Color(0x4caf50));
-        toggleChatBtn.setForeground(Color.WHITE);
+        toggleChatBtn.setForeground(Color.BLACK); // 검정 글씨
         toggleChatBtn.addActionListener(e -> {
             isTeamChatMode = !isTeamChatMode;
             toggleChatBtn.setText(isTeamChatMode ? "팀" : "전체");
@@ -307,9 +307,11 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         // 채팅 전송 콜백 설정
         chatPanel.setOnSendChat(msg -> {
             try {
-                // [닉네임] : 메시지 형식으로 전송
-                String formattedMsg = "[" + nickname + "] : " + msg;
+                // 팀 채팅 모드이면 [TEAM] 접두사 추가
+                String prefix = isTeamChatMode ? "[TEAM]" : "[ALL]";
+                String formattedMsg = prefix + "[" + nickname + "] : " + msg;
                 controller.sendChat(formattedMsg);
+                // 서버에서 에코백될 때 표시되도록 여기서는 표시하지 않음
             } catch (Exception ex) {
                 chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
             }
@@ -368,36 +370,19 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         
         isReady = !isReady;
         
+        // UI 상태만 업데이트 (버튼 색상/텍스트)
         if (isReady) {
-            // READY 상태: 빨강 배경으로 CANCEL 표시
             readyBtn.setBackground(Color.RED);
             readyBtn.setText("CANCEL");
-            
-            // 해당 팀 슬롯에 닉네임 추가
-            JLabel[] teamSlots = (selectedTeam == 0) ? redSlots : blueSlots;
-            for (int i = 0; i < teamSlots.length; i++) {
-                if (teamSlots[i].getText().equals("Empty")) {
-                    teamSlots[i].setText(nickname);
-                    teamSlots[i].setForeground(Color.WHITE);
-                    break;
-                }
-            }
         } else {
-            // CANCEL 상태: 초록 배경으로 READY 표시
             readyBtn.setBackground(new Color(0x00ff00));
             readyBtn.setText("READY");
-            
-            // 해당 팀 슬롯에서 닉네임 제거
-            JLabel[] teamSlots = (selectedTeam == 0) ? redSlots : blueSlots;
-            for (int i = 0; i < teamSlots.length; i++) {
-                if (teamSlots[i].getText().equals(nickname)) {
-                    teamSlots[i].setText("Empty");
-                    teamSlots[i].setForeground(new Color(0x999999));
-                    break;
-                }
-            }
         }
 
+        // 서버에 ready 상태 전송
+        // → 서버가 broadcastReadyStatus() 호출
+        // → 모든 클라이언트가 onReadyStatusWithPlayers() 수신
+        // → 팀 슬롯 UI가 서버 데이터로 자동 동기화됨
         try {
             controller.sendReadyToggle(isReady);
         } catch (Exception ex) {
@@ -473,7 +458,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 chatPanel.appendMyMessage(text);
             } else {
                 // 다른 사람 메시지: 흰색
-                chatPanel.appendOtherMessage(text);
+                chatPanel.appendMessage(text);
             }
         });
     }
@@ -493,8 +478,55 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onPhaseUpdate(int phaseCode) {
         SwingUtilities.invokeLater(() -> {
-            chatPanel.appendSystemMessage("PHASE=" + phaseCode);
-            // TODO: Phase에 따라 UI 변경
+            // PHASE 6: Phase에 따라 탭 자동 전환 및 UI 업데이트
+            switch (phaseCode) {
+                case 0: // LOBBY
+                    tabbedPane.setSelectedIndex(0); // Map Info 탭
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  📋 로비 단계");
+                    chatPanel.appendSystemMessage("  팀을 선택하고 READY 버튼을 눌러주세요");
+                    chatPanel.appendSystemMessage("=============================");
+                    break;
+                    
+                case 1: // VOTE
+                    tabbedPane.setSelectedIndex(0); // Map Info 탭
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  🗳️ 맵 투표 시작!");
+                    chatPanel.appendSystemMessage("  원하는 맵을 클릭하여 투표하세요");
+                    chatPanel.appendSystemMessage("=============================");
+                    break;
+                    
+                case 2: // CHARACTER_SELECT
+                    tabbedPane.setSelectedIndex(1); // Character Select 탭
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  👤 캐릭터 선택 시작!");
+                    chatPanel.appendSystemMessage("  캐릭터를 선택하고 Choose 버튼을 눌러주세요");
+                    chatPanel.appendSystemMessage("=============================");
+                    break;
+                    
+                case 3: // COUNTDOWN
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  ⏰ 게임 곧 시작!");
+                    chatPanel.appendSystemMessage("  준비하세요...");
+                    chatPanel.appendSystemMessage("=============================");
+                    break;
+                    
+                case 4: // PLAYING
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  🎮 게임 시작!");
+                    chatPanel.appendSystemMessage("=============================");
+                    // TODO PHASE 7: 게임 화면으로 전환
+                    break;
+                    
+                case 5: // ROUND_END
+                    chatPanel.appendSystemMessage("=============================");
+                    chatPanel.appendSystemMessage("  🏁 라운드 종료");
+                    chatPanel.appendSystemMessage("=============================");
+                    break;
+                    
+                default:
+                    chatPanel.appendSystemMessage("PHASE=" + phaseCode);
+            }
         });
     }
 
@@ -517,13 +549,72 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onReadyStatus(int ready, int total) {
         SwingUtilities.invokeLater(() -> {
-            // PHASE 3.1: 더 상세한 READY 상태 표시
+            // 기본 메시지 출력
             chatPanel.appendSystemMessage("=============================");
             chatPanel.appendSystemMessage("  준비 완료: " + ready + " / " + total + " 명");
             if (ready == total && total > 0) {
                 chatPanel.appendSystemMessage("  🎮 모든 플레이어 준비 완료!");
             } else if (ready > 0) {
                 chatPanel.appendSystemMessage("  ⏳ " + (total - ready) + "명 대기 중...");
+            }
+            chatPanel.appendSystemMessage("=============================");
+        });
+    }
+    
+    /**
+     * READY_STATUS 새 버전 - 플레이어 리스트 포함
+     * 서버에서 전체 플레이어 정보를 받아서 팀 슬롯 UI를 동기화
+     */
+    public void onReadyStatusWithPlayers(Protocol.ReadyStatus status) {
+        SwingUtilities.invokeLater(() -> {
+            // 디버그 로그
+            System.out.println("[LobbyFrame] onReadyStatusWithPlayers called:");
+            System.out.println("  ready=" + status.ready + " total=" + status.total);
+            System.out.println("  players.size=" + (status.players != null ? status.players.size() : "null"));
+            if (status.players != null) {
+                for (Protocol.PlayerInfo p : status.players) {
+                    System.out.println("    - sid=" + p.sessionId + " nick=" + p.nickname + 
+                                     " team=" + p.team + " char=" + p.character + " ready=" + p.ready);
+                }
+            }
+            
+            // 1. 모든 슬롯 초기화
+            for (int i = 0; i < 5; i++) {
+                redSlots[i].setText("Empty");
+                redSlots[i].setForeground(Color.GRAY);
+                blueSlots[i].setText("Empty");
+                blueSlots[i].setForeground(Color.GRAY);
+            }
+            
+            // 2. 플레이어 리스트로 슬롯 채우기
+            int[] redCount = {0};
+            int[] blueCount = {0};
+            
+            if (status.players != null) {
+                for (Protocol.PlayerInfo player : status.players) {
+                    String displayName = player.nickname + (player.ready ? " ✓" : "");
+                    Color nameColor = player.ready ? Color.GREEN : Color.WHITE;
+                    
+                    if (player.team == 0 && redCount[0] < 5) { // RED 팀
+                        redSlots[redCount[0]].setText(displayName);
+                        redSlots[redCount[0]].setForeground(nameColor);
+                        redCount[0]++;
+                    } else if (player.team == 1 && blueCount[0] < 5) { // BLUE 팀
+                        blueSlots[blueCount[0]].setText(displayName);
+                        blueSlots[blueCount[0]].setForeground(nameColor);
+                        blueCount[0]++;
+                    }
+                }
+            }
+            
+            // 3. 채팅 메시지
+            chatPanel.appendSystemMessage("=============================");
+            chatPanel.appendSystemMessage("  준비 완료: " + status.ready + " / " + status.total + " 명");
+            chatPanel.appendSystemMessage("  RED: " + redCount[0] + "명 | BLUE: " + blueCount[0] + "명");
+            if (status.ready == status.total && status.total > 0) {
+                chatPanel.appendSystemMessage("  🎮 모든 플레이어 준비 완료!");
+            } else if (status.ready > 0) {
+                chatPanel.appendSystemMessage("  ⏳ " + (status.total - status.ready) + "명 대기 중...");
             }
             chatPanel.appendSystemMessage("=============================");
         });

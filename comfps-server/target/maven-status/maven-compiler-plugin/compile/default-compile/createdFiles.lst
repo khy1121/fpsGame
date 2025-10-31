@@ -12,7 +12,6 @@ com\fpsgame\server\RoundController.class
 com\fpsgame\server\ServerMain$1.class
 com\fpsgame\server\ServerMain$LobbyHooks.class
 com\fpsgame\server\MapVoteManager.class
-com\fpsgame\server\ServerMain$2.class
 com\fpsgame\server\ServerRouter.class
 com\fpsgame\server\LobbyState.class
 com\fpsgame\server\GameServer.class

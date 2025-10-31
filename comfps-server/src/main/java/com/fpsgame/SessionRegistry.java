@@ -1,12 +1,5 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.ProjectilesV2;
-import com.fpsgame.common.Protocol;
-import com.fpsgame.common.Vec2;
-import com.fpsgame.common.character.Character;
-import com.fpsgame.common.character.CharacterFactory;
-import com.fpsgame.common.character.projectile.Projectile;
-import com.fpsgame.common.character.projectile.ProjectileManager;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.net.SocketException;
@@ -15,6 +8,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.fpsgame.common.ProjectilesV2;
+import com.fpsgame.common.Protocol;
+import com.fpsgame.common.Vec2;
+import com.fpsgame.common.character.Character;
+import com.fpsgame.common.character.CharacterFactory;
+import com.fpsgame.common.character.projectile.Projectile;
+import com.fpsgame.common.character.projectile.ProjectileManager;
 
 /** Session registry, routing and broadcast helpers (ASCII only). */
 public class SessionRegistry implements DefaultServerRouter.ServerContext {
@@ -37,6 +38,16 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
     // Keep last selection (team/character) for re-sending WELCOME(v2)
     private final ConcurrentHashMap<Integer, Sel> lastSelection = new ConcurrentHashMap<>();
     private static final class Sel { final int team, character; Sel(int t,int c){ team=t; character=c; } }
+    
+    // Nickname mapping
+    private final ConcurrentHashMap<Integer, String> nicknames = new ConcurrentHashMap<>();
+    
+    // LobbyState reference (외부에서 설정)
+    private volatile LobbyState lobbyState;
+    
+    public void setLobbyState(LobbyState lobby) {
+        this.lobbyState = lobby;
+    }
 
     public void setSyncService(PlayerSyncService sync) {
         this.syncService = sync;
@@ -162,6 +173,15 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
             log("session closed: " + sessionId + " (remain=" + sessions.size() + ")");
         }
         
+        // LobbyState에서 플레이어 제거
+        LobbyState lobby = lobbyState;
+        if (lobby != null) {
+            try { 
+                lobby.leave(sessionId); 
+                log("[LOBBY] Player " + sessionId + " left lobby");
+            } catch (Throwable ignore) {}
+        }
+        
         // GameServer에 플레이어 이탈 처리
         GameServer gs = gameServer;
         if (gs != null) {
@@ -191,6 +211,15 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
         s.start();
         log("session opened: " + id + " (total=" + sessions.size() + ")");
         
+        // LobbyState에 플레이어 등록
+        LobbyState lobby = lobbyState;
+        if (lobby != null) {
+            try { 
+                lobby.join(id); 
+                log("[LOBBY] Player " + id + " joined lobby");
+            } catch (Throwable ignore) {}
+        }
+        
         // GameServer에 플레이어 등록
         GameServer gs = gameServer;
         if (gs != null) {
@@ -205,6 +234,25 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
 
     public int size() { return sessions.size(); }
     public java.util.ArrayList<Integer> getSessionIds() { return new java.util.ArrayList<>(sessions.keySet()); }
+    
+    /**
+     * 세션의 닉네임 등록/업데이트
+     * 클라이언트 연결 시 호출되어 닉네임 저장
+     */
+    public void setNickname(int sessionId, String nickname) {
+        if (nickname == null || nickname.trim().isEmpty()) {
+            nickname = "Player" + sessionId;
+        }
+        nicknames.put(sessionId, nickname);
+        log("Nickname registered: sid=" + sessionId + " nickname=" + nickname);
+    }
+    
+    /**
+     * 세션의 닉네임 조회
+     */
+    public String getNickname(int sessionId) {
+        return nicknames.getOrDefault(sessionId, "Player" + sessionId);
+    }
 
     public void broadcastSystemChat(String text) {
         try {
@@ -216,14 +264,60 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
         } catch (Exception ex) { log("broadcastSystemChat error: " + ex.getMessage()); }
     }
     
-    public void broadcastReadyStatus(int ready, int total) {
+    public void sendChatTo(int sessionId, String text) {
+        ServerSession s = sessions.get(sessionId);
+        if (s == null) return;
+        try { s.send(Protocol.CHAT, buildUtf8Payload(text)); }
+        catch (IOException ioe) { log("sendChatTo failed to " + sessionId + ": " + ioe.getMessage()); }
+    }
+    
+    public int getCharacterTeam(int sessionId) {
+        Sel sel = lastSelection.get(sessionId);
+        return (sel == null) ? -1 : sel.team;
+    }
+    
+    public int getCharacterCharacter(int sessionId) {
+        Sel sel = lastSelection.get(sessionId);
+        return (sel == null) ? -1 : sel.character;
+    }
+    
+    public void broadcastPhaseUpdate(int phaseCode) {
         try {
-            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream(8);
-            Protocol.putInt(baos, ready);
-            Protocol.putInt(baos, total);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream(4);
+            Protocol.putInt(baos, phaseCode);
             byte[] payload = baos.toByteArray();
             
             ArrayList<Map.Entry<Integer, ServerSession>> list = new ArrayList<>(sessions.entrySet());
+            for (Map.Entry<Integer, ServerSession> e : list) {
+                try { e.getValue().send(Protocol.PHASE_UPDATE, payload); }
+                catch (IOException ioe) { log("broadcastPhaseUpdate failed to " + e.getKey() + ": " + ioe.getMessage()); }
+            }
+        } catch (Exception ex) { log("broadcastPhaseUpdate error: " + ex.getMessage()); }
+    }
+    
+    public void broadcastReadyStatus(int ready, int total) {
+        try {
+            // 플레이어 리스트 수집
+            java.util.List<Protocol.PlayerInfo> players = new java.util.ArrayList<>();
+            ArrayList<Map.Entry<Integer, ServerSession>> list = new ArrayList<>(sessions.entrySet());
+            
+            for (Map.Entry<Integer, ServerSession> e : list) {
+                int sessionId = e.getKey();
+                
+                // 닉네임, 팀, 캐릭터, ready 상태 수집
+                String nickname = nicknames.getOrDefault(sessionId, "Player" + sessionId);
+                int team = getCharacterTeam(sessionId);
+                int character = getCharacterCharacter(sessionId);
+                boolean isReady = (lobbyState != null) ? lobbyState.isReady(sessionId) : false;
+                
+                players.add(new Protocol.PlayerInfo(sessionId, nickname, team, character, isReady));
+            }
+            
+            // 새 버전 프로토콜 (플레이어 리스트 포함)
+            byte[] payload = Protocol.buildReadyStatusPayload(ready, total, players);
+            
+            log("[BC] READY_STATUS ready=" + ready + " total=" + total + " players=" + players.size());
+            
             for (Map.Entry<Integer, ServerSession> e : list) {
                 try { e.getValue().send(Protocol.READY_STATUS, payload); }
                 catch (IOException ioe) { log("broadcastReadyStatus failed to " + e.getKey() + ": " + ioe.getMessage()); }
@@ -261,10 +355,54 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
 
     // Welcome helpers
     public void sendWelcomeTo(int sessionId, int team, int character) {
+        log("[sendWelcomeTo] START sid=" + sessionId + " team=" + team + " char=" + character);
+        log("[sendWelcomeTo] sessions.size()=" + sessions.size() + " keys=" + sessions.keySet());
+        
         ServerSession s = sessions.get(sessionId);
-        if (s == null) return;
-        lastSelection.put(sessionId, new Sel(team, character));
-        try { s.sendWelcome(sessionId, team, character, worldW, worldH, mapId); } catch (Throwable ignore) {}
+        if (s == null) {
+            log("[sendWelcomeTo] ERROR: session " + sessionId + " not found! Available sessions: " + sessions.keySet());
+            return;
+        }
+        
+        log("[sendWelcomeTo] session found OK");
+        
+        // 기존 선택 정보 가져오기
+        Sel existing = lastSelection.get(sessionId);
+        
+        // Unsigned byte 처리: 255 = -1 (unselected)
+        // team/character가 255(=-1)이면 기존 값 유지
+        int finalTeam;
+        int finalChar;
+        
+        if (team == 255 || team == -1) {
+            // 팀 미선택: 기존 값 유지
+            finalTeam = (existing != null) ? existing.team : -1;
+        } else {
+            // 팀 선택됨: 새 값 사용
+            finalTeam = team;
+        }
+        
+        if (character == 255 || character == -1) {
+            // 캐릭터 미선택: 기존 값 유지
+            finalChar = (existing != null) ? existing.character : -1;
+        } else {
+            // 캐릭터 선택됨: 새 값 사용
+            finalChar = character;
+        }
+        
+        log("[sendWelcomeTo] CALC sid=" + sessionId + 
+            " existing=" + (existing != null ? ("team=" + existing.team + " char=" + existing.character) : "null") +
+            " -> final team=" + finalTeam + " char=" + finalChar);
+        
+        // 최종 값으로 저장
+        lastSelection.put(sessionId, new Sel(finalTeam, finalChar));
+        
+        try { 
+            s.sendWelcome(sessionId, finalTeam, finalChar, worldW, worldH, mapId);
+            log("[sendWelcomeTo] SUCCESS sid=" + sessionId);
+        } catch (Throwable t) {
+            log("[sendWelcomeTo] ERROR sending welcome: " + t.getMessage());
+        }
     }
 
     private void broadcastWelcomeAll() {

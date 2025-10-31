@@ -1,10 +1,11 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.Protocol;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Objects;
+
+import com.fpsgame.common.Protocol;
 
 /**
  * Default server-side router. Normalizes opcode usage to Protocol.Opcode.*.
@@ -49,6 +50,14 @@ public final class DefaultServerRouter {
             ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
             Protocol.putUtf8(baos, text == null ? "" : text);
             context.broadcast(Protocol.Opcode.CHAT, baos.toByteArray());
+        }
+        
+        /** Send chat to specific session. */
+        public void sendChatTo(int sessionId, String text) throws IOException {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(64);
+            Protocol.putUtf8(baos, text == null ? "" : text);
+            DataOutput out = context.getSender(sessionId);
+            Protocol.writeFrame(out, Protocol.Opcode.CHAT, baos.toByteArray());
         }
 
         /** Broadcast phase update. */

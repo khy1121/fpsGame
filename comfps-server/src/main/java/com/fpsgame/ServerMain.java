@@ -12,7 +12,7 @@ public final class ServerMain {
     /** 로비 훅 구현(선택/투표/레디 처리) */
     static final class LobbyHooks implements DefaultServerRouter.Hooks {
         // 세션 레지스트리 및 게임 서버 참조
-        private final SessionRegistry registry;
+        private SessionRegistry registry;
         private final GameServer gameServer;
         
         // 게임 상태 관리
@@ -20,16 +20,64 @@ public final class ServerMain {
         private final MapVoteManager voteManager;
 
         LobbyHooks(SessionRegistry registry, GameServer gameServer) {
-            this.registry = Objects.requireNonNull(registry, "registry");
+            this.registry = registry;
             this.gameServer = Objects.requireNonNull(gameServer, "gameServer");
             this.lobbyState = new LobbyState();
             this.voteManager = new MapVoteManager();
+            
+            // SessionRegistry에 LobbyState 설정 (registry가 null이 아닐 때만)
+            if (registry != null) {
+                registry.setLobbyState(lobbyState);
+            }
+        }
+        
+        // Registry 나중에 설정 가능하도록
+        void setRegistry(SessionRegistry registry) {
+            this.registry = Objects.requireNonNull(registry, "registry");
+            registry.setLobbyState(lobbyState);
         }
 
         @Override
         public void onChat(int fromSessionId, String text, DefaultServerRouter.Broadcaster bc) throws java.io.IOException {
-            //
-            bc.broadcastChat("[" + fromSessionId + "] " + text);
+            // 닉네임 추출 및 저장 (형식: [nickname] : message)
+            if (text.startsWith("[") && text.contains("] : ")) {
+                int endBracket = text.indexOf("]");
+                if (endBracket > 1) {
+                    String nickname = text.substring(1, endBracket);
+                    registry.setNickname(fromSessionId, nickname);
+                }
+            }
+            
+            // 팀 채팅 필터링
+            if (text.startsWith("[TEAM]")) {
+                // 팀 채팅: 같은 팀에만 전송
+                String cleanText = text.substring(6); // [TEAM] 제거
+                int senderTeam = registry.getCharacterTeam(fromSessionId);
+                
+                registry.log("[CHAT] TEAM mode - sid=" + fromSessionId + " team=" + senderTeam + " msg=" + cleanText);
+                
+                for (int sid : registry.getSessionIds()) {
+                    int receiverTeam = registry.getCharacterTeam(sid);
+                    registry.log("[CHAT] Check sid=" + sid + " team=" + receiverTeam);
+                    
+                    if (receiverTeam == senderTeam) {
+                        try {
+                            bc.sendChatTo(sid, "[TEAM]" + cleanText);
+                            registry.log("[CHAT] Sent to sid=" + sid);
+                        } catch (Exception e) {
+                            registry.log("[CHAT] Failed to send to sid=" + sid + ": " + e.getMessage());
+                        }
+                    }
+                }
+            } else if (text.startsWith("[ALL]")) {
+                // 전체 채팅
+                String cleanText = text.substring(5); // [ALL] 제거
+                bc.broadcastChat(cleanText);
+                registry.log("[CHAT] ALL chat from sid=" + fromSessionId);
+            } else {
+                // 기본: 전체 브로드캐스트
+                bc.broadcastChat(text);
+            }
         }
 
         @Override
@@ -56,6 +104,18 @@ public final class ServerMain {
             
             // 개별 알림
             registry.broadcastSystemChat("[SYSTEM] sid=" + sessionId + (ready ? " READY" : " UNREADY"));
+            
+            // 모두 READY 시 Phase 전환
+            if (lobbyState.isEveryoneReady() && total > 0) {
+                registry.log("[PHASE] Everyone ready! Transitioning to VOTE phase...");
+                try {
+                    // VOTE Phase로 전환
+                    registry.broadcastPhaseUpdate(com.fpsgame.common.GameEnums.Phase.VOTE.ordinal());
+                    registry.broadcastSystemChat("[PHASE] 맵 투표를 시작합니다!");
+                } catch (Exception e) {
+                    registry.log("[ERROR] Phase transition failed: " + e.getMessage());
+                }
+            }
         }
         
         private int countReadyPlayers() {
@@ -70,7 +130,7 @@ public final class ServerMain {
         public void setSelection(int sessionId, int team, int character) {
             registry.log("[AGGREGATE] SELECT sid=" + sessionId + " team=" + team + " char=" + character);
             
-            // 선택 결과를 월드/웰컴에 반영
+            // 선택 결과를 월드/웰컴에 반영 (sendWelcomeTo에서 기존 값 처리)
             try { 
                 registry.createOrUpdateCharacter(sessionId, team, character);
                 registry.log("[UPDATE] World character created/updated for sid=" + sessionId);
@@ -78,10 +138,12 @@ public final class ServerMain {
                 registry.log("[ERROR] World character update failed for sid=" + sessionId + ": " + t);
             }
             
-            // 해당 플레이어에게 웰컴 프레임 갱신
+            // 해당 플레이어에게 웰컴 프레임 갱신 (기존 값 유지 로직 포함)
             try { 
                 registry.sendWelcomeTo(sessionId, team, character);
-                registry.log("[BC] WELCOME sent to sid=" + sessionId);
+                int finalTeam = registry.getCharacterTeam(sessionId);
+                int finalChar = registry.getCharacterCharacter(sessionId);
+                registry.log("[BC] WELCOME sent to sid=" + sessionId + " with team=" + finalTeam + " char=" + finalChar);
             } catch (Throwable t) {
                 registry.log("[ERROR] Welcome send failed to sid=" + sessionId + ": " + t);
             }
@@ -179,17 +241,17 @@ public final class ServerMain {
         // 게임 서버 생성 및 시작
         GameServer gameServer = new GameServer(30); // 30Hz 고정 틱
         
-        // 플레이스홀더 라우터(최소 훅)
-        DefaultServerRouter placeholderRouter = new DefaultServerRouter(new DefaultServerRouter.Hooks() {
-            //
-            @Override public void setReady(int sessionId, boolean ready) {}
-            @Override public void setSelection(int sessionId, int team, int character) {}
-            @Override public void registerMapVote(int sessionId, int mapId) {}
-        });
-        SessionRegistry registry = new SessionRegistry(placeholderRouter);
-
-        LobbyHooks hooks = new LobbyHooks(registry, gameServer);
-        TcpServer server = new TcpServer(port, hooks, 0, bind);
+        // LobbyHooks 생성 (SessionRegistry는 나중에 설정)
+        LobbyHooks hooks = new LobbyHooks(null, gameServer);
+        
+        // LobbyHooks를 사용하는 router로 SessionRegistry 생성
+        DefaultServerRouter router = new DefaultServerRouter(hooks);
+        SessionRegistry registry = new SessionRegistry(router);
+        
+        // LobbyHooks에 registry 설정
+        hooks.setRegistry(registry);
+        
+        TcpServer server = new TcpServer(port, hooks, registry, 0, bind);
         
         // 게임 서버 이벤트 리스너 설정 (브로드캐스트 자동화)
         gameServer.setEvents(new GameServer.Events() {

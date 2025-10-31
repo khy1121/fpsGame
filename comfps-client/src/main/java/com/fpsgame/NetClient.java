@@ -1,8 +1,5 @@
 package com.fpsgame.client;
 
-import com.fpsgame.common.Protocol;
-
-import javax.swing.SwingUtilities;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -13,6 +10,10 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.swing.SwingUtilities;
+
+import com.fpsgame.common.Protocol;
 
 /** NetClient 네트워크 코어. (주석 한글화) */
 public class NetClient implements Closeable {
@@ -217,7 +218,7 @@ public class NetClient implements Closeable {
             case Protocol.Opcode.ROUND_RESULT -> fireRoundResult(Protocol.parseRoundResult(f.payload));
             case Protocol.Opcode.READY_STATUS -> {
                 var rs = Protocol.parseReadyStatus(f.payload);
-                fireReadyStatus(rs.ready, rs.total);
+                fireReadyStatus(rs); // 전체 ReadyStatus 객체 전달
             }
             default -> { }
         }
@@ -253,8 +254,19 @@ public class NetClient implements Closeable {
         dispatch(() -> listener.onRoundResult(rr));
     }
 
-    private void fireReadyStatus(int ready, int total) {
-        dispatch(() -> listener.onReadyStatus(ready, total));
+    private void fireReadyStatus(Protocol.ReadyStatus rs) {
+        dispatch(() -> {
+            // 레거시 인터페이스 호출 (ready, total만)
+            listener.onReadyStatus(rs.ready, rs.total);
+            
+            // 새 버전 인터페이스 호출 (플레이어 리스트 포함)
+            if (listener instanceof ClientController.Ui) {
+                ClientController.Ui ui = (ClientController.Ui) listener;
+                if (ui instanceof com.fpsgame.client.ui.LobbyFrame) {
+                    ((com.fpsgame.client.ui.LobbyFrame) ui).onReadyStatusWithPlayers(rs);
+                }
+            }
+        });
     }
 
     private void fireDisconnected(String msg) {

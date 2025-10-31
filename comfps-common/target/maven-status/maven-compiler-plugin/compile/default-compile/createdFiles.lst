@@ -63,6 +63,7 @@ com\fpsgame\common\character\ability\BasicAbility.class
 com\fpsgame\common\Protocol$Pair.class
 com\fpsgame\common\character\ability\Ability.class
 com\fpsgame\common\character\ability\TacticalAbility.class
+com\fpsgame\common\Protocol$PlayerInfo.class
 com\fpsgame\common\Protocol$RoundResult.class
 com\fpsgame\common\character\projectile\Projectile.class
 com\fpsgame\common\character\visual\Particle$1.class
