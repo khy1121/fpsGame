@@ -4,10 +4,8 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\SettingsPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ChatConsoleFrame.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\model\ClientPhaseBus.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\LobbyFlowBootstrap.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\FpsOverlayPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\tools\LobbySandboxFrame.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\PhaseIntegration.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\PhaseHudInstaller.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\GameScreenFrame.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\HudBarPanel.java
@@ -51,10 +49,10 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ReadyButton.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\LobbyCenterStackPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ClientToolsMain.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\PhaseAutoRegister.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ClientPhaseBootstrap.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\LobbyCenterCoordinator.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\model\ClientPhaseModel.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\client\PhaseAutoRegister.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\AutoReconnect.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\MapVoteUiInstaller.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\net\NetClientHooks.java
@@ -68,7 +66,6 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\model\PhaseEventLogger.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\model\PlayerState.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ConnectPanel.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ClientLobbyBootstrap.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\net\DemoPayloads.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\HudOverlayToggleKeybind.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\PhaseUiInstaller.java

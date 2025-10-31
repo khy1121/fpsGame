@@ -1,13 +1,13 @@
 package com.fpsgame.client;
 
-import com.fpsgame.common.Protocol;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ThreadLocalRandom;
+
+import com.fpsgame.common.Protocol;
 
 /** ClientController (ASCII comments). */
 public class ClientController {
@@ -41,9 +41,9 @@ public class ClientController {
     private volatile long lastPingNonce; //
     private volatile long lastPingSentAt;
 
-    //
-    private com.fpsgame.client.PhaseIntegration phaseIntegration;   //
-    private com.fpsgame.client.ClientLobbyBootstrap lobbyBootstrap; //
+    // Legacy UI system removed (PHASE 1)
+    // private com.fpsgame.client.PhaseIntegration phaseIntegration;   //
+    // private com.fpsgame.client.ClientLobbyBootstrap lobbyBootstrap; //
 
     //
 
@@ -95,51 +95,22 @@ public class ClientController {
 
     //
 
-    /** ClientController (ASCII comments). */
+    /** 
+     * Legacy UI attachment method - DEPRECATED (PHASE 1)
+     * Use new LobbyFrame instead.
+     */
+    @Deprecated
     public synchronized void attachUi(JFrame gameFrame) {
-        Objects.requireNonNull(gameFrame, "gameFrame");
-        //
-        uninstallUi();
-
-        //
-        try {
-            this.phaseIntegration = com.fpsgame.client.PhaseIntegration.install(gameFrame, ensureConnected());
-        } catch (Throwable t) {
-            //
-            this.phaseIntegration = null;
-        }
-
-        //
-        try {
-            this.lobbyBootstrap = com.fpsgame.client.ClientLobbyBootstrap
-                    .install(gameFrame, ensureConnected())
-                    .withMaps(List.of("terminal", "neonCity", "ForestOutpost"))
-                    .withCharacters(List.of(
-                            "Sage","Piper","Technician","General","Bulldog",
-                            "Wildcat","Raven","Ghost","Skull","Steam"));
-        } catch (Throwable t) {
-            this.lobbyBootstrap = null;
-        }
+        // Legacy UI system removed
+        // New LobbyFrame should be used directly
     }
 
-    /** ClientController (ASCII comments). */
+    /** 
+     * Legacy UI uninstall method - DEPRECATED (PHASE 1)
+     */
+    @Deprecated
     public synchronized void uninstallUi() {
-        try {
-            if (lobbyBootstrap != null) {
-                lobbyBootstrap.uninstall();
-            }
-        } catch (Throwable ignore) {}
-        finally {
-            lobbyBootstrap = null;
-        }
-        try {
-            if (phaseIntegration != null) {
-                phaseIntegration.uninstall();
-            }
-        } catch (Throwable ignore) {}
-        finally {
-            phaseIntegration = null;
-        }
+        // Legacy UI system removed
     }
 
     //

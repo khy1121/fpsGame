@@ -20,7 +20,6 @@ com\fpsgame\client\ui\Toast$ToastPanel.class
 com\fpsgame\client\ui\CharacterSelectUiInstaller.class
 com\fpsgame\client\ClientController$1.class
 com\fpsgame\client\ui\CenterMessageOverlay$3.class
-com\fpsgame\client\PhaseIntegration.class
 com\fpsgame\client\ui\NetPlaygroundFrame.class
 com\fpsgame\client\net\ReadyToggleSender.class
 com\fpsgame\client\ui\CountdownOverlayBinder$1.class
@@ -47,7 +46,6 @@ com\fpsgame\client\model\PlayerState.class
 com\fpsgame\client\ui\SettingsFrame.class
 com\fpsgame\client\ui\HudOverlayLayer.class
 com\fpsgame\client\ui\ChatPanel.class
-com\fpsgame\client\LobbyFlowBootstrap$1.class
 com\fpsgame\client\ui\OptionsWindow$SaveListener.class
 com\fpsgame\client\MainClient$ClientConfig.class
 com\fpsgame\client\ui\ChatDock$1.class
@@ -161,8 +159,6 @@ com\fpsgame\client\ui\CharacterSelectDialog.class
 com\fpsgame\client\model\Settings.class
 com\fpsgame\client\ui\LobbyFrame.class
 com\fpsgame\client\ui\MapVotePhaseBinder.class
-com\fpsgame\client\LobbyFlowBootstrap.class
-com\fpsgame\client\ClientLobbyBootstrap.class
 com\fpsgame\client\ui\GameScreenFrame.class
 com\fpsgame\client\ui\CenterMessageOverlay$2.class
 com\fpsgame\client\ui\LobbyFrame$1.class
