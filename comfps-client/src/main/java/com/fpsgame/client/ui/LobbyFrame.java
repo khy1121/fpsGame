@@ -1,14 +1,30 @@
 package com.fpsgame.client.ui;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.GridLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
+import javax.swing.border.EmptyBorder;
+
 import com.fpsgame.client.ClientController;
 import com.fpsgame.client.model.Settings;
 import com.fpsgame.common.Protocol;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
 
 /**
  * 로비 화면 프레임
@@ -42,8 +58,8 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private final JButton readyBtn = new JButton("READY");
     private boolean isReady = false;
 
-    // 채팅
-    private final ChatWindow chatWindow = new ChatWindow();
+    // 채팅 패널
+    private final ChatPanel chatPanel = new ChatPanel();
 
     // 연결 정보
     private final JLabel hostLabel = new JLabel("Host:");
@@ -226,14 +242,15 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         chatTitle.setBorder(new EmptyBorder(4, 0, 4, 0));
 
         panel.add(chatTitle, BorderLayout.NORTH);
-        panel.add(chatWindow, BorderLayout.CENTER);
+        panel.add(chatPanel, BorderLayout.CENTER);
 
         // 채팅 전송 콜백 설정
-        chatWindow.setOnSendChat(msg -> {
+        chatPanel.setOnSendChat(msg -> {
             try {
                 controller.sendChat(msg);
+                chatPanel.appendMyMessage(msg);
             } catch (Exception ex) {
-                chatWindow.appendSystemMessage("Failed to send: " + ex.getMessage());
+                chatPanel.appendSystemMessage("Failed to send: " + ex.getMessage());
             }
         });
 
@@ -259,7 +276,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
         try {
             controller.sendReadyToggle(isReady);
         } catch (Exception ex) {
-            chatWindow.appendSystemMessage("Failed to send ready: " + ex.getMessage());
+            chatPanel.appendSystemMessage("Failed to send ready: " + ex.getMessage());
         }
     }
 
@@ -269,9 +286,9 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
             int port = Integer.parseInt(portField.getText().replace(",", "").trim());
             controller.connect(host, port, 3000);
             controller.attachUi(this);
-            chatWindow.appendSystemMessage("서버에 연결 중...: Connection refused: getsockopt");
+            chatPanel.appendSystemMessage("서버 연결 중...");
         } catch (Exception ex) {
-            chatWindow.appendSystemMessage("연결 실패: " + ex.getMessage());
+            chatPanel.appendSystemMessage("연결 실패: " + ex.getMessage());
         }
     }
 
@@ -288,13 +305,13 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     // ClientController.Ui 구현
     @Override
     public void onChat(String text) {
-        SwingUtilities.invokeLater(() -> chatWindow.appendOtherMessage(text));
+        SwingUtilities.invokeLater(() -> chatPanel.appendOtherMessage(text));
     }
 
     @Override
     public void onWelcome(Protocol.Welcome welcome) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("WELCOME id=" + welcome.myId + 
+            chatPanel.appendSystemMessage("WELCOME id=" + welcome.myId + 
                 " world=" + welcome.worldW + "x" + welcome.worldH +
                 (welcome.mapId >= 0 ? (" map=" + welcome.mapId) : "") +
                 (welcome.team >= 0 ? (" team=" + welcome.team) : "") +
@@ -305,7 +322,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onPhaseUpdate(int phaseCode) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("PHASE=" + phaseCode);
+            chatPanel.appendSystemMessage("PHASE=" + phaseCode);
             // TODO: Phase에 따라 UI 변경
         });
     }
@@ -313,14 +330,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onCountdown(int seconds) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("COUNTDOWN=" + seconds);
+            chatPanel.appendSystemMessage("COUNTDOWN=" + seconds);
         });
     }
 
     @Override
     public void onRoundResult(Protocol.RoundResult rr) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("ROUND winner=" + rr.winnerTeam + 
+            chatPanel.appendSystemMessage("ROUND winner=" + rr.winnerTeam + 
                 " score " + rr.blueRounds + ":" + rr.redRounds + 
                 (rr.matchEnded ? " GAME OVER" : ""));
         });
@@ -329,14 +346,14 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onReadyStatus(int ready, int total) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("READY_STATUS " + ready + "/" + total);
+            chatPanel.appendSystemMessage("READY_STATUS " + ready + "/" + total);
         });
     }
 
     @Override
     public void onDisconnected(String message) {
         SwingUtilities.invokeLater(() -> {
-            chatWindow.appendSystemMessage("Disconnected: " + message);
+            chatPanel.appendSystemMessage("Disconnected: " + message);
             JOptionPane.showMessageDialog(this, "서버 연결이 끊어졌습니다.", "알림", JOptionPane.WARNING_MESSAGE);
         });
     }

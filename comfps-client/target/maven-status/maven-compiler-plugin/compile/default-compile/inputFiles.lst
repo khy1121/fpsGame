@@ -31,7 +31,6 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ConnectionStatusBar.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\LobbyUiInstaller.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\net\ReadyToggleSender.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ChatPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\PlaygroundFrame.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\HudOverlayLayer.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\NetPlaygroundFrame.java
@@ -47,6 +46,7 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\CharacterSelectDialog.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\client\ui\ImageUtil.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\model\PlayerSnapshotBuffer.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\client\ui\ChatPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\ReadyButton.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ui\LobbyCenterStackPanel.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-client\src\main\java\com\fpsgame\ClientToolsMain.java

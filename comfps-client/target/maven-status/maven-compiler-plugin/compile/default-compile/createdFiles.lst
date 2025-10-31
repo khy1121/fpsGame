@@ -6,7 +6,6 @@ com\fpsgame\client\ui\MiniConsolePanel.class
 com\fpsgame\client\ui\CharacterSelectPhaseBinder.class
 com\fpsgame\client\MainClient$ClientWindow.class
 com\fpsgame\client\model\RttMonitor.class
-com\fpsgame\client\ui\ChatPanel$1.class
 com\fpsgame\client\ClientDemoMain.class
 com\fpsgame\client\ClientUiBootstrap.class
 com\fpsgame\client\ui\LobbyPanelReadyBridge.class
