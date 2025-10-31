@@ -1,13 +1,30 @@
 package com.fpsgame.client.ui;
 
-import com.fpsgame.client.model.Keybinds;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Frame;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.util.Objects;
 import java.util.Properties;
-import java.util.function.BiConsumer;
+
+import javax.swing.Box;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSlider;
+import javax.swing.JTabbedPane;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
+import javax.swing.border.EmptyBorder;
+
+import com.fpsgame.client.model.Keybinds;
 
 /**
  * 옵션 창(독립 다이얼로그).
@@ -62,6 +79,18 @@ public final class OptionsWindow extends JDialog {
 
         setContentPane(buildUI());
         wireActions();
+    }
+
+    /** 현재 다이얼로그의 볼륨 슬라이더 값을 설정(0~100) */
+    public void setVolume(int volume) {
+        int v = Math.max(0, Math.min(100, volume));
+        volumeSlider.setValue(v);
+    }
+
+    /** 현재 다이얼로그의 감도 슬라이더 값을 설정(퍼센트 기준 1~100) */
+    public void setSensitivityPercent(int sensitivityPercent) {
+        int v = Math.max(1, Math.min(100, sensitivityPercent));
+        sensSlider.setValue(v);
     }
 
     /* ===================== UI 빌드 ===================== */

@@ -1,8 +1,10 @@
 package com.fpsgame.client;
 
-import com.fpsgame.client.ui.PhaseUiInstaller;
 import java.util.Objects;
+
 import javax.swing.JFrame;
+
+import com.fpsgame.client.ui.PhaseUiInstaller;
 
 /**
  * PhaseIntegration

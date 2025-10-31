@@ -1,7 +1,6 @@
 com\fpsgame\client\ui\LobbyPanel$SimpleDocListener.class
 com\fpsgame\client\ui\LobbyReadyListModel.class
 com\fpsgame\client\ui\NetDemoFrame.class
-com\fpsgame\client\MainLauncher$3.class
 com\fpsgame\client\ui\MiniConsolePanel.class
 com\fpsgame\client\ui\CharacterSelectPhaseBinder.class
 com\fpsgame\client\MainClient$ClientWindow.class
@@ -9,6 +8,7 @@ com\fpsgame\client\model\RttMonitor.class
 com\fpsgame\client\ClientDemoMain.class
 com\fpsgame\client\ClientUiBootstrap.class
 com\fpsgame\client\ui\LobbyPanelReadyBridge.class
+com\fpsgame\MainLauncher$2.class
 com\fpsgame\client\ui\GameCanvas$4.class
 com\fpsgame\client\model\ClientPhaseBus$RoundResult.class
 com\fpsgame\client\ui\HudPanel$1.class
@@ -75,12 +75,10 @@ com\fpsgame\client\ui\GameCanvasNetDemo$1.class
 com\fpsgame\client\ui\CountdownOverlayBinder.class
 com\fpsgame\client\ui\LobbyReadyPanel.class
 com\fpsgame\client\ui\NetPlaygroundFrame$1.class
-com\fpsgame\client\MainLauncher$4.class
 com\fpsgame\client\tools\LobbySandboxFrame.class
 com\fpsgame\client\ui\PlaygroundFrame$1.class
 com\fpsgame\client\model\ClientPhaseBus$PhaseState.class
 com\fpsgame\client\ui\GameCanvasNetDemo.class
-com\fpsgame\client\MainLauncher$1.class
 com\fpsgame\client\model\SnapshotBuffer$S.class
 com\fpsgame\client\ui\LatencyIndicator$Dot.class
 com\fpsgame\client\ui\LatencyIndicator.class
@@ -91,7 +89,6 @@ com\fpsgame\client\ClientLauncher$1.class
 com\fpsgame\client\model\ClientInputPump$FloatSupplier.class
 com\fpsgame\client\ui\LobbyUiInstaller.class
 com\fpsgame\client\ui\ReadyButton$ReadyChangeListener.class
-com\fpsgame\client\MainLauncher$2.class
 com\fpsgame\client\ui\LobbyReadyListModel$Entry.class
 com\fpsgame\client\ui\PhaseUiInstaller.class
 com\fpsgame\client\ui\GameHudLayer$1.class
@@ -100,6 +97,7 @@ com\fpsgame\client\net\SetSelectionSender.class
 com\fpsgame\client\ui\ChatDock$2.class
 com\fpsgame\client\ui\ImageUtil.class
 com\fpsgame\client\ui\PlaygroundFrame$3.class
+com\fpsgame\MainLauncher.class
 com\fpsgame\client\ClientToolsMain.class
 com\fpsgame\client\NetClient$Listener.class
 com\fpsgame\client\ui\LobbyCenterStackPanel.class
@@ -142,6 +140,7 @@ com\fpsgame\client\model\SnapshotBuffer$P.class
 com\fpsgame\client\model\PhaseEventLogger.class
 com\fpsgame\client\ui\GameHudLayer.class
 com\fpsgame\client\ui\CharacterSelectPanel$BufferedImageLoader.class
+com\fpsgame\MainLauncher$4.class
 com\fpsgame\client\MainClient$ClientWindow$3.class
 com\fpsgame\client\PhaseAutoRegister.class
 com\fpsgame\client\ui\GameScreenFrame$2.class
@@ -163,7 +162,6 @@ com\fpsgame\client\model\Settings.class
 com\fpsgame\client\ui\LobbyFrame.class
 com\fpsgame\client\ui\MapVotePhaseBinder.class
 com\fpsgame\client\LobbyFlowBootstrap.class
-com\fpsgame\client\MainLauncher.class
 com\fpsgame\client\ClientLobbyBootstrap.class
 com\fpsgame\client\ui\GameScreenFrame.class
 com\fpsgame\client\ui\CenterMessageOverlay$2.class
@@ -177,6 +175,7 @@ com\fpsgame\client\ChatCommandHandler.class
 com\fpsgame\client\model\PlayerSnapshotBuffer.class
 com\fpsgame\client\model\ClientPhaseBus$1.class
 com\fpsgame\client\model\RttMonitor$1.class
+com\fpsgame\MainLauncher$3.class
 com\fpsgame\client\ui\GameCanvas.class
 com\fpsgame\client\ui\ChatConsoleFrame$2.class
 com\fpsgame\client\ui\CenterMessageOverlay.class
@@ -186,6 +185,7 @@ com\fpsgame\client\ui\MapVotePanel.class
 com\fpsgame\client\ui\ChatConsoleFrame$3.class
 com\fpsgame\client\ClientController$2.class
 com\fpsgame\client\MainClient$1.class
+com\fpsgame\MainLauncher$1.class
 com\fpsgame\client\ui\CenterMessageOverlay$1.class
 com\fpsgame\client\net\MapVoteSender.class
 com\fpsgame\client\ui\HudOverlayToggleKeybind$1.class

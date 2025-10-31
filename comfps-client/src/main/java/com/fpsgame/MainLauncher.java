@@ -1,4 +1,4 @@
-package com.fpsgame.client;
+package com.fpsgame;
 
 import java.awt.Color;
 import java.awt.Cursor;
@@ -31,6 +31,7 @@ import javax.swing.border.EmptyBorder;
 
 import com.fpsgame.client.model.Settings;
 import com.fpsgame.client.ui.LobbyFrame;
+import com.fpsgame.client.ui.OptionsWindow;
 
 /**
  * FPS 게임 메인 런처
@@ -254,11 +255,40 @@ public final class MainLauncher extends JFrame {
     }
 
     private void openSettings() {
-        // 설정 창 열기 (향후 구현)
-        JOptionPane.showMessageDialog(this, 
-            "설정 창은 개발 중입니다.", 
-            "설정", 
-            JOptionPane.INFORMATION_MESSAGE);
+        // 옵션 창 열기: 현재 설정 값을 반영하고 저장 시 Settings에 적용 후 즉시 저장
+        OptionsWindow w = new OptionsWindow(settings.getKeybinds());
+
+        // 현재 설정 → 다이얼로그 슬라이더 반영
+        w.setVolume(settings.getMasterVolume());
+        w.setSensitivityPercent(sensitivityFloatToPercent(settings.getMouseSensitivity()));
+
+        w.setSaveListener((props, volume, sensitivityPct) -> {
+            // 키바인딩 저장
+            settings.getKeybinds().load(props);
+            // 볼륨/감도 저장
+            settings.setMasterVolume(volume);
+            settings.setMouseSensitivity(sensitivityPercentToFloat(sensitivityPct));
+            // 즉시 저장
+            saveSettings();
+        });
+
+        w.setLocationRelativeTo(this);
+        w.setVisible(true);
+    }
+
+    // 감도 매핑: Settings(0.1~2.0) ⇄ UI(1~100)
+    private static int sensitivityFloatToPercent(float sens) {
+        float clamped = Math.max(0.1f, Math.min(2.0f, sens));
+        // 0.1 -> 1, 2.0 -> 100 (선형 매핑)
+        int pct = Math.round(((clamped - 0.1f) / 1.9f) * 99f) + 1;
+        if (pct < 1) pct = 1; if (pct > 100) pct = 100;
+        return pct;
+    }
+
+    private static float sensitivityPercentToFloat(int pct) {
+        int p = Math.max(1, Math.min(100, pct));
+        // 1 -> 0.1, 100 -> 2.0 (선형 매핑)
+        return 0.1f + ((p - 1) / 99f) * 1.9f;
     }
 
     private void saveSettings() {
