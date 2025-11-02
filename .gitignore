@@ -1,1 +1,13 @@
 /bin/
+target/
+*.class
+*.jar
+*.war
+*.ear
+.DS_Store
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
