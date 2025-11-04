@@ -5,6 +5,7 @@ com\fpsgame\client\ui\MiniConsolePanel.class
 com\fpsgame\client\ui\CharacterSelectPhaseBinder.class
 com\fpsgame\client\MainClient$ClientWindow.class
 com\fpsgame\client\model\RttMonitor.class
+com\fpsgame\client\ui\GamePanel$2.class
 com\fpsgame\client\ClientDemoMain.class
 com\fpsgame\client\ClientUiBootstrap.class
 com\fpsgame\client\ui\LobbyPanelReadyBridge.class
@@ -20,6 +21,7 @@ com\fpsgame\client\ui\Toast$ToastPanel.class
 com\fpsgame\client\ui\CharacterSelectUiInstaller.class
 com\fpsgame\client\ClientController$1.class
 com\fpsgame\client\ui\CenterMessageOverlay$3.class
+com\fpsgame\client\ui\GameFrame$2.class
 com\fpsgame\client\ui\NetPlaygroundFrame.class
 com\fpsgame\client\net\ReadyToggleSender.class
 com\fpsgame\client\ui\CountdownOverlayBinder$1.class
@@ -28,11 +30,13 @@ com\fpsgame\client\ui\HudOverlayLayer$2.class
 com\fpsgame\client\ClientPhaseBootstrap$1.class
 com\fpsgame\client\ClientUiBootstrap$1.class
 com\fpsgame\client\ui\HudPanel.class
+com\fpsgame\client\ui\GamePanel$1.class
 com\fpsgame\client\ui\MapInfoPanel.class
 com\fpsgame\client\ui\CenterMessageOverlayPanel.class
 com\fpsgame\client\ui\CenterMessageOverlay$4.class
 com\fpsgame\client\ui\ClientApp.class
 com\fpsgame\client\ui\GameCanvas$3.class
+com\fpsgame\client\ui\GamePanel$ActionSender.class
 com\fpsgame\client\ui\GameScreenFrame$1.class
 com\fpsgame\client\model\PlayerSnapshotBuffer$Entry.class
 com\fpsgame\client\net\NetClientPhaseBridge$MultiSigListenerProxy.class
@@ -60,6 +64,7 @@ com\fpsgame\client\ClientController$Ui.class
 com\fpsgame\client\AutoReconnect.class
 com\fpsgame\client\model\Keybinds$Action.class
 com\fpsgame\client\model\ClientInputPump.class
+com\fpsgame\client\ui\GamePanel.class
 com\fpsgame\client\model\ClientPhaseBus.class
 com\fpsgame\client\ui\OptionsWindow.class
 com\fpsgame\client\ui\GameScreenFrame$4.class
@@ -103,6 +108,7 @@ com\fpsgame\client\ui\NetStatusPanel.class
 com\fpsgame\client\model\Viewport.class
 com\fpsgame\client\ClientMain$MainFrame.class
 com\fpsgame\client\ui\CharacterSelectPanel.class
+com\fpsgame\client\ui\GamePanel$3.class
 com\fpsgame\client\ClientPhaseBootstrap.class
 com\fpsgame\client\ui\LobbyPanel.class
 com\fpsgame\client\ui\KeybindEditorPanel$1.class
@@ -160,6 +166,7 @@ com\fpsgame\client\ui\CharacterSelectDialog.class
 com\fpsgame\client\model\Settings.class
 com\fpsgame\client\ui\LobbyFrame.class
 com\fpsgame\client\ui\MapVotePhaseBinder.class
+com\fpsgame\client\ui\GamePanel$InputSender.class
 com\fpsgame\client\ui\GameScreenFrame.class
 com\fpsgame\client\ui\CenterMessageOverlay$2.class
 com\fpsgame\client\ui\LobbyFrame$1.class

@@ -153,7 +153,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     private JPanel buildGamePanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setOpaque(false);
+        
+        // 새로운 Viewport 기반 GamePanel 생성
         gamePanel = new GamePanel();
+        
         // Bind input sender to controller
         gamePanel.setInputSender((mask, aim) -> {
             try {
@@ -162,6 +165,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 // ignore transient send errors; connection state will handle
             }
         });
+        
         // Bind action sender for attacks/skills
         gamePanel.setActionSender(actionType -> {
             try {
@@ -170,6 +174,7 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
                 // ignore transient send errors
             }
         });
+        
         panel.add(gamePanel, BorderLayout.CENTER);
         return panel;
     }
@@ -541,6 +546,11 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onPhaseUpdate(int phaseCode) {
         SwingUtilities.invokeLater(() -> {
+            // GamePanel에 Phase 정보 전달
+            if (gamePanel != null) {
+                gamePanel.updatePhase(phaseCode);
+            }
+            
             // PHASE 6: Phase에 따라 탭 자동 전환 및 UI 업데이트
             switch (phaseCode) {
                 case 0: // LOBBY
@@ -606,6 +616,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onCountdown(int seconds) {
         SwingUtilities.invokeLater(() -> {
+            // GamePanel에 카운트다운 정보 전달
+            if (gamePanel != null) {
+                gamePanel.updateCountdown(seconds);
+            }
             chatPanel.appendSystemMessage("COUNTDOWN=" + seconds);
         });
     }
@@ -613,6 +627,10 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onRoundResult(Protocol.RoundResult rr) {
         SwingUtilities.invokeLater(() -> {
+            // GamePanel에 점수 업데이트
+            if (gamePanel != null) {
+                gamePanel.updateScore(rr.blueRounds, rr.redRounds);
+            }
             chatPanel.appendSystemMessage("ROUND winner=" + rr.winnerTeam + 
                 " score " + rr.blueRounds + ":" + rr.redRounds + 
                 (rr.matchEnded ? " GAME OVER" : ""));
@@ -718,7 +736,25 @@ public class LobbyFrame extends JFrame implements ClientController.Ui {
     @Override
     public void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {
         if (gamePanel == null) return;
-        SwingUtilities.invokeLater(() -> gamePanel.applySnapshot(list));
+        SwingUtilities.invokeLater(() -> {
+            gamePanel.applySnapshot(list);
+            
+            // 내 플레이어의 HP와 스킬 쿨다운 정보 추출
+            if (myId >= 0) {
+                for (com.fpsgame.common.SnapshotV2.Entry entry : list) {
+                    if (entry.id == myId) {
+                        // HP와 스킬 쿨다운 업데이트
+                        gamePanel.updatePlayerStats(
+                            entry.hp, 
+                            100, // maxHp - 기본값
+                            entry.tacticalCd, 
+                            entry.ultimateCd
+                        );
+                        break;
+                    }
+                }
+            }
+        });
     }
 
     @Override

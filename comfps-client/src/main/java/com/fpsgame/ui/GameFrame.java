@@ -59,9 +59,10 @@ public class GameFrame extends JFrame implements ClientController.Ui {
     private final JButton disconnectBtn = new JButton("Disconnect");
 
     // 게임 화면 레이아웃 / 메인 HUD
-    // 중앙: 좌측 채팅 임베드, 우측 HUD
+    // 중앙: 좌측 채팅 임베드, 우측 게임 패널
     private final ChatWindow chatWindowEmbed = new ChatWindow(); // 채팅창 임베드
     private final HudPanel hud = new HudPanel();
+    private final com.fpsgame.client.ui.GamePanel gamePanel = new com.fpsgame.client.ui.GamePanel(); // 새 게임 패널
 
     // 하단: READY/팀/캐릭터/맵 선택
     private final JToggleButton readyToggle = new JToggleButton("READY");
@@ -100,16 +101,17 @@ public class GameFrame extends JFrame implements ClientController.Ui {
         center.setOneTouchExpandable(true);
         center.setContinuousLayout(true);
         
-        // HUD를 메인 영역으로 설정 (게임 화면 + 정보)
-        hud.setMinimumSize(new Dimension(600, 400));
-        hud.setPreferredSize(new Dimension(1000, 600));
+        // GamePanel을 메인 영역으로 설정 (게임 화면 + HUD 통합)
+        gamePanel.setMinimumSize(new Dimension(600, 400));
+        gamePanel.setPreferredSize(new Dimension(1000, 600));
+        gamePanel.setBackground(new Color(0x0f1115));
         
         // 채팅창을 오른쪽에 배치 (최소 크기 설정)
         JComponent chatPanel = wrap(chatWindowEmbed.getContentPane());
         chatPanel.setMinimumSize(new Dimension(250, 400));
         chatPanel.setPreferredSize(new Dimension(320, 600));
         
-        center.setLeftComponent(hud);
+        center.setLeftComponent(gamePanel);
         center.setRightComponent(chatPanel);
         add(center, BorderLayout.CENTER);
 
@@ -192,6 +194,15 @@ public class GameFrame extends JFrame implements ClientController.Ui {
         try {
             controller.connect(host, port, 3000);
             hud.log("connecting to " + host + ":" + port + " ...");
+            
+            // GamePanel에 입력/액션 sender 연결
+            gamePanel.setInputSender((mask, aim) -> {
+                try { controller.sendInputMask(mask, aim); } catch (Exception ignore) {}
+            });
+            gamePanel.setActionSender((actionType) -> {
+                try { controller.sendAction(actionType); } catch (Exception ignore) {}
+            });
+            
             updateUiState(true);
         } catch (Exception ex) {
             hud.log("connect failed: " + ex.getMessage());
@@ -288,6 +299,14 @@ public class GameFrame extends JFrame implements ClientController.Ui {
         // HUD 라벨에도 지속적으로 표기
         hud.setWorldInfo(welcome.worldW, welcome.worldH);
         hud.setMapInfo(mapName, welcome.mapId);
+        
+        // GamePanel 초기화
+        gamePanel.setMyId(welcome.myId);
+        gamePanel.setWorldSize(welcome.worldW, welcome.worldH);
+        gamePanel.setMapId(welcome.mapId);
+        gamePanel.setConnected(true);
+        gamePanel.setSystemMessage("Connected to " + mapName);
+        
         // 콤보박스 선택 상태를 서버 값으로 동기화(안전 범위 체크)
         try {
             if (welcome.team >= 0 && welcome.team < teamCombo.getItemCount()) {
@@ -309,29 +328,45 @@ public class GameFrame extends JFrame implements ClientController.Ui {
     @Override public void onPhaseUpdate(int phaseCode) {
         this.currentPhaseCode = phaseCode;
         hud.updatePhase(phaseCode);
+        gamePanel.updatePhase(phaseCode);  // GamePanel에도 전달
         // 플레이 페이즈가 아니면 오버레이 숨김
         if (!isGameplayPhase()) hideCharacterOverlay();
     }
 
     @Override public void onCountdown(int seconds) {
         hud.updateCountdown(seconds);
+        gamePanel.updateCountdown(seconds);  // GamePanel에도 전달
     }
 
     @Override public void onRoundResult(Protocol.RoundResult rr) {
         hud.updateRoundResult(rr);
+        if (rr != null) {
+            gamePanel.updateScore(rr.blueRounds, rr.redRounds);  // GamePanel에 점수 전달
+        }
     }
 
     @Override public void onReadyStatus(int ready, int total) {
         try { hud.setReadyInfo(ready, total); } catch (Throwable ignore) {}
+        gamePanel.updateReadyCount(ready, total);  // GamePanel에도 전달
     }
 
     @Override public void onDisconnected(String message) {
         hud.log("[disconnected] " + (message == null ? "" : message));
+        gamePanel.setConnected(false);  // GamePanel에 연결 끊김 전달
         updateUiState(false);
     }
 
     @Override public void onPingPong(long rttMillis) {
         hud.updateRtt(rttMillis);
+        gamePanel.setSystemMessage("RTT: " + rttMillis + " ms");  // GamePanel에 RTT 전달
+    }
+    
+    @Override public void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {
+        gamePanel.applySnapshot(list);  // GamePanel에 스냅샷 전달
+    }
+    
+    @Override public void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {
+        gamePanel.applyProjectiles(list);  // GamePanel에 투사체 전달
     }
 
     // ================= 메인 진입점 =================

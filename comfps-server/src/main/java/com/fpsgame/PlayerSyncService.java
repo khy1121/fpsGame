@@ -194,16 +194,29 @@ public final class PlayerSyncService {
             Player p = e.getValue();
             int team = 0;
             int chr = 0;
+            int hp = 100; // 기본값
+            float tacticalCd = 0f;
+            float ultimateCd = 0f;
+            
             if (cp != null) {
                 try {
                     var ch = cp.get(id);
                     if (ch != null) {
                         team = (ch.getTeam() == com.fpsgame.common.GameEnums.Team.BLUE) ? 1 : 0;
                         chr = ch.getId().ordinal();
+                        hp = (int) ch.getCurrentHealth();
+                        
+                        // 스킬 쿨다운 정보 가져오기
+                        if (ch.getTacticalAbility() != null) {
+                            tacticalCd = ch.getTacticalAbility().getCooldown();
+                        }
+                        if (ch.getUltimateAbility() != null) {
+                            ultimateCd = ch.getUltimateAbility().getCooldown();
+                        }
                     }
                 } catch (Throwable ignore) {}
             }
-            list.add(new com.fpsgame.common.SnapshotV2.Entry(id, p.x, p.y, p.aim, team, chr));
+            list.add(new com.fpsgame.common.SnapshotV2.Entry(id, p.x, p.y, p.aim, team, chr, hp, tacticalCd, ultimateCd));
             p.dirty = false;
         }
         return com.fpsgame.common.SnapshotV2.build(list);

@@ -14,7 +14,6 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
@@ -67,7 +66,10 @@ public final class ClientMain {
         private final JButton    disconnectBtn = new JButton("Disconnect");
         private final JButton    pingBtn = new JButton("Ping");
 
-        // 중앙: 채팅 로그
+        // 중앙: 게임 패널 (새로 통합)
+        private final com.fpsgame.client.ui.GamePanel gamePanel = new com.fpsgame.client.ui.GamePanel();
+        
+        // 채팅 로그 (사이드바로 이동 예정, 일단 유지)
         private final JTextPane chatPane = new JTextPane();
         private final StyledDocument chatDoc = chatPane.getStyledDocument();
 
@@ -86,18 +88,23 @@ public final class ClientMain {
         MainFrame() {
             super("FPS Client");
             setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            setSize(960, 600);
+            setSize(1280, 800);  // 게임 화면을 위해 크기 확대
             setLocationRelativeTo(null);
 
             chatPane.setEditable(false);
             chatPane.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+            
+            // GamePanel 설정
+            gamePanel.setBackground(new Color(0x0f1115));
+            gamePanel.setFocusable(true);  // 포커스 가능하게
+            gamePanel.requestFocusInWindow();  // 포커스 요청
 
             JPanel root = new JPanel(new BorderLayout(12, 8));
             root.setBorder(new EmptyBorder(8, 8, 8, 8));
             setContentPane(root);
 
             root.add(buildTopBar(), BorderLayout.NORTH);
-            root.add(new JScrollPane(chatPane), BorderLayout.CENTER);
+            root.add(gamePanel, BorderLayout.CENTER);  // 채팅 대신 GamePanel
             root.add(buildBottomBar(), BorderLayout.SOUTH);
             root.add(statusLabel, BorderLayout.WEST);
 
@@ -155,6 +162,18 @@ public final class ClientMain {
                 try {
                     controller.connect(hostField.getText().trim(), (Integer) portSpinner.getValue(), 3000);
                     controller.attachUi(this);
+                    
+                    // GamePanel에 입력/액션 sender 연결
+                    gamePanel.setInputSender((mask, aim) -> {
+                        try { controller.sendInputMask(mask, aim); } catch (Exception ignore) {}
+                    });
+                    gamePanel.setActionSender((actionType) -> {
+                        try { controller.sendAction(actionType); } catch (Exception ignore) {}
+                    });
+                    
+                    // GamePanel에 포커스 주기
+                    gamePanel.requestFocusInWindow();
+                    
                     appendSystem("Connecting...");
                     updateUiState(true);
                     statusLabel.setText("Connected: " + hostField.getText() + ":" + portSpinner.getValue());
@@ -262,6 +281,12 @@ public final class ClientMain {
                         (welcome.team >= 0 ? (" team=" + welcome.team) : "") +
                         (welcome.character >= 0 ? (" char=" + welcome.character) : ""));
             
+            // GamePanel 초기화
+            gamePanel.setMyId(welcome.myId);
+            gamePanel.setWorldSize(welcome.worldW, welcome.worldH);
+            gamePanel.setMapId(welcome.mapId);
+            gamePanel.setConnected(true);
+            
             // 팀/캐릭터 선택 UI 업데이트
             try {
                 if (welcome.team >= 0 && welcome.team < teamCombo.getItemCount()) {
@@ -272,13 +297,36 @@ public final class ClientMain {
                 }
             } catch (Exception ignore) {}
         }
-        @Override public void onPhaseUpdate(int phaseCode) { appendSystem("PHASE=" + phaseCode); }
-        @Override public void onCountdown(int seconds) { appendSystem("COUNTDOWN=" + seconds); }
+        @Override public void onPhaseUpdate(int phaseCode) {
+            appendSystem("PHASE=" + phaseCode);
+            gamePanel.updatePhase(phaseCode);
+        }
+        @Override public void onCountdown(int seconds) {
+            appendSystem("COUNTDOWN=" + seconds);
+            gamePanel.updateCountdown(seconds);
+        }
         @Override public void onRoundResult(Protocol.RoundResult rr) {
             appendSystem("ROUND winner=" + rr.winnerTeam + " score " + rr.blueRounds + ":" + rr.redRounds + (rr.matchEnded ? " end" : ""));
+            if (rr != null) {
+                gamePanel.updateScore(rr.blueRounds, rr.redRounds);
+            }
         }
-        @Override public void onReadyStatus(int ready, int total) { appendSystem("READY_STATUS ready=" + ready + " total=" + total); }
-        @Override public void onDisconnected(String message) { appendError("Disconnected: " + message); }
+        @Override public void onReadyStatus(int ready, int total) {
+            appendSystem("READY_STATUS ready=" + ready + " total=" + total);
+            gamePanel.updateReadyCount(ready, total);
+        }
+        @Override public void onDisconnected(String message) {
+            appendError("Disconnected: " + message);
+            gamePanel.setConnected(false);
+        }
+        
+        @Override public void onSnapshotV2(java.util.List<com.fpsgame.common.SnapshotV2.Entry> list) {
+            gamePanel.applySnapshot(list);
+        }
+        
+        @Override public void onProjectilesV2(java.util.List<com.fpsgame.common.ProjectilesV2.Entry> list) {
+            gamePanel.applyProjectiles(list);
+        }
 
         // =================== 채팅 표시 도우미 ===================
         private void appendChat(String s) { append(s + "\n", new Color(0,128,255)); }
