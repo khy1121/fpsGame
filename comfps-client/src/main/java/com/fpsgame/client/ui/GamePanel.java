@@ -42,8 +42,11 @@ public class GamePanel extends JPanel {
     
     // 월드 & 카메라
     private final Viewport viewport;
+    private volatile float worldW = 3000f;
+    private volatile float worldH = 2000f;
     private volatile int myId = -1;
-    private volatile int currentMapId = -1;
+    // TODO: Use currentMapId for map-specific rendering
+    // private volatile int currentMapId = -1;
 
     private final Map<Integer, SnapshotV2.Entry> players = new ConcurrentHashMap<>();
     private volatile List<ProjectilesV2.Entry> projectiles = java.util.Collections.emptyList();
@@ -83,8 +86,9 @@ public class GamePanel extends JPanel {
     private volatile float tacticalCooldown = 0f; // 0~1 (0=사용가능)
     private volatile float ultimateCooldown = 0f;
 
-    // Input state
-    private volatile boolean keyW, keyA, keyS, keyD, keyE, keyQ;
+    // Input state (WASD for movement)
+    private volatile boolean keyW, keyA, keyS, keyD;
+    // TODO: keyE, keyQ for abilities (not yet implemented)
     private volatile Float aimRad = null; // nullable until computed
 
     // Sender binding
@@ -94,8 +98,9 @@ public class GamePanel extends JPanel {
     private volatile ActionSender actionSender;
 
     public GamePanel() {
-        // Viewport 초기화 (기본 3000x2000 월드)
+        // Viewport 초기화 (기본 3000x2000 월드, 줌 2.0 적용)
         viewport = new Viewport(3000f, 2000f);
+        viewport.setScale(2.0f); // 맵의 절반만 보이도록 줌
         
         setOpaque(false);
         setDoubleBuffered(true);
@@ -122,12 +127,12 @@ public class GamePanel extends JPanel {
                     case KeyEvent.VK_D -> keyD = true;
                     case KeyEvent.VK_M -> minimapEnabled = !minimapEnabled; // 토글
                     case KeyEvent.VK_E -> {
-                        keyE = true;
+                        // TODO: Implement tactical ability key
                         ActionSender as = actionSender;
                         if (as != null) as.sendAction(1); // Tactical
                     }
                     case KeyEvent.VK_Q -> {
-                        keyQ = true;
+                        // TODO: Implement ultimate ability key
                         ActionSender as = actionSender;
                         if (as != null) as.sendAction(2); // Ultimate
                     }
@@ -140,10 +145,21 @@ public class GamePanel extends JPanel {
                     case KeyEvent.VK_A -> keyA = false;
                     case KeyEvent.VK_S -> keyS = false;
                     case KeyEvent.VK_D -> keyD = false;
-                    case KeyEvent.VK_E -> keyE = false;
-                    case KeyEvent.VK_Q -> keyQ = false;
+                    // E and Q keys are handled in keyPressed
                     default -> {}
                 }
+            }
+        });
+        
+        // Resize listener
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int w = Math.max(1, getWidth());
+                int h = Math.max(1, getHeight());
+                viewport.resize(w, h);
+                // resize 후 다시 원하는 스케일 설정 (2.0배 카메라 줌)
+                viewport.setScale(2.0f);
             }
         });
 
@@ -177,11 +193,25 @@ public class GamePanel extends JPanel {
     }
 
     public void setWorldSize(int w, int h) {
-        viewport.setWorldSize(Math.max(1, w), Math.max(1, h));
+        worldW = Math.max(1, w);
+        worldH = Math.max(1, h);
+        viewport.setWorldSize(worldW, worldH);
+        // 화면 크기를 기준으로 적절한 스케일 설정
+        int panelW = Math.max(1, getWidth());
+        int panelH = Math.max(1, getHeight());
+        viewport.resize(panelW, panelH);
+        
+        // 카메라 줌: 스케일을 2.0으로 설정하여 맵의 절반 크기만 보이도록
+        // 즉, 3000x2000 맵에서 1500x1000 영역만 보임
+        float targetScale = 2.0f;
+        viewport.setScale(targetScale);
         repaint();
     }
 
-    public void setMyId(int id) { this.myId = id; }
+    public void setMyId(int id) { 
+        this.myId = id; 
+        System.out.println("[GamePanel] ★★ myId 설정됨: " + id + " (이전 myId=" + this.myId + ")");
+    }
 
     /** Bind a sender that transmits input to server. */
     public void setInputSender(InputSender sender) { this.inputSender = sender; }
@@ -191,7 +221,8 @@ public class GamePanel extends JPanel {
     
     /** Set map ID and load background image. */
     public void setMapId(int mapId) {
-        this.currentMapId = mapId;
+        // TODO: Use mapId for map-specific rendering
+        // this.currentMapId = mapId;
         loadMapBackground(mapId);
         repaint();
     }
@@ -252,8 +283,14 @@ public class GamePanel extends JPanel {
     private void updateCamera() {
         SnapshotV2.Entry me = players.get(myId);
         if (me != null) {
-            // 부드럽게 추적 (lerp 적용 가능, 일단은 즉시)
+            // 카메라가 플레이어를 중심으로 따라가도록 설정
+            // 이렇게 하면 플레이어가 이동할 때 맵이 이동하는 효과가 생김
             viewport.setCenter(me.x, me.y);
+        } else {
+            // DEBUG: 내 캐릭터를 찾을 수 없음
+            if (myId >= 0) {
+                System.out.println("[GamePanel] WARNING: myId=" + myId + " not found in players. players.size=" + players.size() + ", keys=" + players.keySet());
+            }
         }
     }
     
@@ -335,6 +372,22 @@ public class GamePanel extends JPanel {
         if (list == null) return;
         Map<Integer, SnapshotV2.Entry> map = new ConcurrentHashMap<>(Math.max(16, list.size()*2));
         for (SnapshotV2.Entry e : list) map.put(e.id, e);
+        
+        // DEBUG: 스냅샷 적용 로그
+        if (myId >= 0 && !map.containsKey(myId)) {
+            System.out.println("[GamePanel] ★★ WARNING: 스냅샷에 myId=" + myId + " 없음! 받은 IDs: " + map.keySet());
+        }
+        
+        // DEBUG: 스냅샷 위치 확인 (myId와 다른 플레이어 비교)
+        if (list != null && list.size() > 0) {
+            StringBuilder sb = new StringBuilder("[GamePanel] ★ myId=" + myId + " 스냅샷 받음: ");
+            for (SnapshotV2.Entry e : list) {
+                String mark = (e.id == myId) ? "★MY★" : "";
+                sb.append(String.format("id=%d%s pos=(%.1f,%.1f) ", e.id, mark, e.x, e.y));
+            }
+            System.out.println(sb.toString());
+        }
+        
         players.clear();
         players.putAll(map);
         // Repaint는 Timer가 처리
@@ -363,6 +416,12 @@ public class GamePanel extends JPanel {
         if (keyS) mask |= 0x02;
         if (keyA) mask |= 0x04;
         if (keyD) mask |= 0x08;
+        
+        // DEBUG: 입력 전송 로그 (입력이 있을 때만)
+        if (mask != 0) {
+            System.out.println("[GamePanel] ★ myId=" + myId + " 입력 전송: mask=" + mask + " W=" + keyW + " S=" + keyS + " A=" + keyA + " D=" + keyD);
+        }
+        
         sender.send((byte)(mask & 0xFF), aimRad);
     }
 
@@ -395,14 +454,34 @@ public class GamePanel extends JPanel {
             g2.fillRect(topLeft.x, topLeft.y, viewW, viewH);
         }
 
-        // 투사체 렌더링
-        g2.setStroke(new BasicStroke(2f));
-        g2.setColor(new Color(0xffd54f));
+        // 투사체 렌더링 (타입별 차별화)
         for (ProjectilesV2.Entry p : projectiles) {
             if (!p.active) continue;
             Point pp = viewport.worldToScreen(p.x, p.y);
-            int r = Math.max(2, Math.round(3 * viewport.getScale()));
+            
+            // 타입별 색상 및 크기 (고정 크기)
+            Color bulletColor;
+            int r;
+            switch (p.type) {
+                case ProjectilesV2.TYPE_BULLET:
+                default:
+                    bulletColor = new Color(0xffd54f); // 노란색
+                    r = 4;
+                    break;
+            }
+            
+            // 외곽선 (빛나는 효과)
+            g2.setColor(new Color(bulletColor.getRed(), bulletColor.getGreen(), bulletColor.getBlue(), 100));
+            g2.fillOval(pp.x - r - 2, pp.y - r - 2, (r + 2) * 2, (r + 2) * 2);
+            
+            // 메인 투사체
+            g2.setColor(bulletColor);
             g2.fillOval(pp.x - r, pp.y - r, r * 2, r * 2);
+            
+            // 중앙 하이라이트 (반짝임)
+            g2.setColor(new Color(255, 255, 255, 180));
+            int hr = Math.max(1, r / 2);
+            g2.fillOval(pp.x - hr, pp.y - hr, hr * 2, hr * 2);
         }
 
         // 플레이어 렌더링 (캐릭터 이미지 + 방향 회전)
@@ -411,8 +490,8 @@ public class GamePanel extends JPanel {
             
             BufferedImage charImg = getCharacterImage(e.characterId);
             if (charImg != null) {
-                // 캐릭터 이미지를 aim 방향으로 회전
-                int imgSize = Math.max(16, Math.round(32 * viewport.getScale()));
+                    // 캐릭터 이미지를 aim 방향으로 회전 (고정 크기 64px)
+                    int imgSize = 64;
                 
                 AffineTransform oldTx = g2.getTransform();
                 AffineTransform tx = new AffineTransform();
@@ -424,27 +503,28 @@ public class GamePanel extends JPanel {
                 g2.drawImage(charImg, 0, 0, imgSize, imgSize, null);
                 g2.setTransform(oldTx);
             } else {
-                // 이미지가 없으면 원으로 표시
-                int r = Math.max(4, Math.round(8 * viewport.getScale()));
+                // 이미지가 없으면 원으로 표시 (고정 크기)
+                int r = 16;
                 Color body = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
                 g2.setColor(body);
                 g2.fillOval(pp.x - r, pp.y - r, r * 2, r * 2);
             }
             
-            // 내 플레이어 강조 (흰색 테두리)
-            if (e.id == myId) {
-                int r = Math.max(6, Math.round(12 * viewport.getScale()));
-                g2.setColor(Color.WHITE);
-                g2.setStroke(new BasicStroke(2f));
-                g2.drawOval(pp.x - r, pp.y - r, r * 2, r * 2);
-            }
+            // 내 플레이어 강조는 크로스헤어로 대체 (흰색 테두리 제거)
             
-            // 팀 색상 표시 (작은 원)
+            // 팀 색상 표시 (작은 원 - 고정 크기)
             Color teamColor = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
             g2.setColor(teamColor);
-            int tr = Math.max(2, Math.round(3 * viewport.getScale()));
-            int ty = pp.y - Math.max(8, Math.round(15 * viewport.getScale()));
+            int tr = 5;
+            int ty = pp.y - 40;
             g2.fillOval(pp.x - tr, ty, tr * 2, tr * 2);
+            
+            // 플레이어 ID 표시 (닉네임 대신 임시)
+            g2.setFont(hudFont);
+            g2.setColor(Color.WHITE);
+            String idText = "#" + e.id;
+            int idW = g2.getFontMetrics().stringWidth(idText);
+            g2.drawString(idText, pp.x - idW / 2, ty - 8);
         }
 
         // HUD 정보 (좌상단)
@@ -468,28 +548,26 @@ public class GamePanel extends JPanel {
         g2.dispose();
     }
 
-    // 우상단 오버레이 미니맵 렌더링
+    // 우상단 오버레이 미니맵 렌더링 (위치 조정 - 맵을 가리지 않게)
     private void drawMinimap(Graphics2D g2, int panelW, int panelH) {
         if (!minimapEnabled) return;
         
-        // 월드 전체 영역 가져오기 (Viewport의 worldBounds 활용)
-        Rect wb = viewport.getViewBounds(null); // 현재 보이는 영역
-        // 미니맵은 월드 전체를 표시해야 하므로 초기화 시 설정된 3000x2000 사용
-        // setWorldSize로 변경될 수 있으므로 고정값 대신 필드를 추가하거나 간단히 하드코딩
-        float worldW = 3000f;  // 초기화 시 viewport(3000, 2000)
-        float worldH = 2000f;
+        // 월드 전체 영역 가져오기
+        float ww = this.worldW;
+        float wh = this.worldH;
         
-        if (worldW <= 0 || worldH <= 0) return;
+        if (ww <= 0 || wh <= 0) return;
 
         // 월드 비율 유지하면서 최대 크기 안에 맞춤
-        double msx = MINIMAP_MAX_W / (double) worldW;
-        double msy = MINIMAP_MAX_H / (double) worldH;
+        double msx = MINIMAP_MAX_W / (double) ww;
+        double msy = MINIMAP_MAX_H / (double) wh;
         double ms = Math.min(msx, msy);
-        int mmW = Math.max(40, (int) Math.round(worldW * ms));
-        int mmH = Math.max(40, (int) Math.round(worldH * ms));
+        int mmW = Math.max(40, (int) Math.round(ww * ms));
+        int mmH = Math.max(40, (int) Math.round(wh * ms));
 
+        // 위치 조정: 우하단으로 이동 (맵을 가리지 않게)
         int x0 = panelW - MINIMAP_MARGIN - mmW;
-        int y0 = MINIMAP_MARGIN;
+        int y0 = panelH - MINIMAP_MARGIN - mmH;
 
         // 배경 (투명도)
         g2.setColor(new Color(0x0b0d12, true));
@@ -499,6 +577,10 @@ public class GamePanel extends JPanel {
         g2.setColor(new Color(0x445062));
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawRect(x0, y0, mmW, mmH);
+        
+        // 맵 구조 표시 (간단한 경계선)
+        g2.setColor(new Color(80, 80, 80, 100));
+        g2.drawRect(x0 + 2, y0 + 2, mmW - 4, mmH - 4);
 
         // 투사체
         g2.setColor(new Color(0xffd54f));
@@ -509,13 +591,21 @@ public class GamePanel extends JPanel {
             g2.fillOval(mx - MINIMAP_DOT_PROJECTILE/2, my - MINIMAP_DOT_PROJECTILE/2, MINIMAP_DOT_PROJECTILE, MINIMAP_DOT_PROJECTILE);
         }
 
-        // 플레이어
+        // 플레이어 (같은 팀만 표시)
+        SnapshotV2.Entry me = players.get(myId);
+        int myTeam = (me != null) ? me.team : -1;
+        
         for (SnapshotV2.Entry e : players.values()) {
+            // 같은 팀만 미니맵에 표시
+            if (myTeam >= 0 && e.team != myTeam) continue;
+            
             int mx = x0 + (int) Math.round(e.x * ms);
             int my = y0 + (int) Math.round(e.y * ms);
             Color teamColor = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
             g2.setColor(teamColor);
             g2.fillOval(mx - MINIMAP_DOT_PLAYER/2, my - MINIMAP_DOT_PLAYER/2, MINIMAP_DOT_PLAYER, MINIMAP_DOT_PLAYER);
+            
+            // 내 캐릭터 강조
             if (e.id == myId) {
                 g2.setColor(Color.WHITE);
                 g2.drawOval(mx - MINIMAP_DOT_PLAYER/2 - 2, my - MINIMAP_DOT_PLAYER/2 - 2, MINIMAP_DOT_PLAYER + 4, MINIMAP_DOT_PLAYER + 4);
@@ -642,14 +732,22 @@ public class GamePanel extends JPanel {
         }
     }
     
-    // 크로스헤어 렌더링 (화면 중앙)
+    // 크로스헤어 렌더링 (내 캐릭터 위치에 표시 + 조준 방향)
     private void drawCrosshair(Graphics2D g2, int w, int h) {
-        int cx = w / 2;
-        int cy = h / 2;
-        int len = 10;
-        int gap = 3;
+        // 내 캐릭터 찾기
+        SnapshotV2.Entry me = players.get(myId);
+        if (me == null) return;
         
-        g2.setColor(new Color(255, 255, 255, 200));
+        // 내 캐릭터의 화면 좌표
+        Point myScreenPos = viewport.worldToScreen(me.x, me.y);
+        int cx = myScreenPos.x;
+        int cy = myScreenPos.y;
+        
+        // 기본 십자선 (내 캐릭터 위치)
+        int len = 12;
+        int gap = 5;
+        
+        g2.setColor(new Color(255, 255, 255, 220));
         g2.setStroke(new BasicStroke(2f));
         
         // 상하좌우 라인
@@ -659,7 +757,18 @@ public class GamePanel extends JPanel {
         g2.drawLine(cx, cy + gap, cx, cy + len); // 하
         
         // 중앙 점
-        g2.fillOval(cx - 1, cy - 1, 3, 3);
+        g2.fillOval(cx - 2, cy - 2, 4, 4);
+        
+        // 조준 방향 표시 (aim 각도 - 내 캐릭터의 aim 사용)
+        g2.setColor(new Color(255, 100, 100, 180));
+        g2.setStroke(new BasicStroke(3f));
+        int aimLen = 40;
+        int aimX = cx + (int)(Math.cos(me.aim) * aimLen);
+        int aimY = cy + (int)(Math.sin(me.aim) * aimLen);
+        g2.drawLine(cx, cy, aimX, aimY);
+        
+        // 조준선 끝에 작은 원
+        g2.fillOval(aimX - 3, aimY - 3, 6, 6);
     }
 }
 
