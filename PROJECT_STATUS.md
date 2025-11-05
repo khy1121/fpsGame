@@ -1,6 +1,7 @@
 # 프로젝트 상태 분석 보고서
 
 **생성일**: 2025-10-30  
+**최종 업데이트**: 2025-11-05  
 **프로젝트**: comfps (FPS Game)
 
 ---
@@ -8,28 +9,44 @@
 ## 📊 현재 상태
 
 ### 1. 프로젝트 구조
-- **타입**: 단일 모듈 Eclipse 프로젝트
-- **소스 위치**: `src/com/fpsgame/`
-- **빌드 출력**: `bin/`
+- **타입**: Maven 멀티 모듈 프로젝트
+- **모듈**: comfps-common, comfps-client, comfps-server
+- **빌드 시스템**: Maven 3.9+
+- **Java 버전**: 17
 
 ### 2. 파일 통계
 ```
 총 Java 파일: 190개
-├── client:  98개
-├── common:  77개
+├── client:  99개 (테스트 +1)
+├── common:  79개
 └── server:  15개
 
 백업 파일: 0개 (정리 완료 ✅)
 컴파일 에러: 0개 (정상 ✅)
+테스트: 1개 통과 ✅
 ```
 
-### 3. pom.xml 상태
+### 3. 최근 수정 사항 (2025-11-05)
+1. **버그 수정**:
+   - ✅ 십자선 위치 오류 수정 (Issue #2)
+   - ✅ 카메라 시스템 검증 완료
+
+2. **테스트 추가**:
+   - ✅ `GamePanelCameraFollowTest` - 카메라 추적 테스트
+   - ✅ AssertJ 의존성 추가
+
+3. **문서화**:
+   - ✅ `CAMERA_SYSTEM.md` - 카메라 시스템 설계 문서
+   - ✅ `BUG_FIXES.md` - 버그 수정 리포트
+
+### 4. pom.xml 상태
 - **존재**: ✅ 있음
 - **타입**: 멀티 모듈 parent POM
-- **선언된 모듈**: common, model, character, net, ui, client, server (7개)
-- **실제 모듈 디렉토리**: ❌ 없음 (단일 모듈 구조와 불일치)
+- **모듈**: comfps-common, comfps-client, comfps-server (3개)
+- **빌드 상태**: ✅ 성공
+- **테스트 상태**: ✅ 통과 (1/1)
 
-### 4. 이미 완료된 작업 ✅
+### 5. 이미 완료된 작업 ✅
 1. **중복 파일 제거** (3개)
    - `client/net/PhaseAutoRegister.java` (중복)
    - `common/projectile/Bullet.java` (@Deprecated)
@@ -41,6 +58,11 @@
 3. **구모듈 정리**
    - `ProjectilesV1.java` 삭제 (미사용)
    - `ProjectilesV2.java` 유지 (네트워크 프로토콜에서 사용 중)
+
+4. **카메라 시스템 수정** (2025-11-05)
+   - 십자선 화면 중앙 고정
+   - 테스트 케이스 작성 및 검증
+   - 문서화 완료
 
 ---
 

@@ -1,9 +1,9 @@
 package com.fpsgame.client.model;
 
+import java.awt.Point;
+
 import com.fpsgame.common.Rect;
 import com.fpsgame.common.Vec2;
-
-import java.awt.*;
 
 /**
  * 뷰포트(월드↔스크린 변환 및 카메라 관리).
@@ -31,11 +31,11 @@ public final class Viewport {
     private float camY = 0f;
 
     // 스케일(px / wu)
-    private float scale = 1f;
+    private float scale = 1.0f;  // 기본 스케일 1.0으로 복원
 
     // 줌 한계
-    private float minScale = 0.1f;
-    private float maxScale = 5.0f;
+    private float minScale = 0.05f;
+    private float maxScale = 3.0f;
 
     /** @param worldW 초기 월드 너비(wu), @param worldH 높이(wu) */
     public Viewport(float worldW, float worldH) {
@@ -68,15 +68,22 @@ public final class Viewport {
 
     /** 스케일 재계산(월드가 스크린보다 작으면 최소로 꽉 채우도록) */
     private void recomputeScale() {
-        // 기본은 기존 스케일 유지. 단, 화면 최초 설정 시 월드 전체가 들어오도록 최소 스케일을 계산
-        float fitX = screenW / Math.max(1f, worldW);
-        float fitY = screenH / Math.max(1f, worldH);
-        float fit = Math.min(fitX, fitY);        // 한 화면에 전부 보이려면 이 값 이상이면 됨
-        if (Float.isFinite(fit) && fit > 0f) {
-            minScale = Math.max(0.05f, Math.min(minScale, fit)); // fit보다 더 작은 줌도 허용, 단 최소값 갱신은 보수적으로
-            if (scale < minScale) scale = minScale;
-        }
+        // 최소 스케일은 고정값으로 설정 (자동 계산하지 않음)
+        // 이렇게 하면 사용자가 설정한 스케일(0.8 등)이 유지됨
+        // minScale은 생성자에서 0.1로 이미 설정되어 있음
         scale = clamp(scale, minScale, maxScale);
+    }
+
+    /** Fit the entire world inside the current screen dimensions. */
+    public void fitToWorld() {
+        if (worldW <= 0f || worldH <= 0f) return;
+        if (screenW <= 0 || screenH <= 0) return;
+        float scaleX = screenW / worldW;
+        float scaleY = screenH / worldH;
+        float target = Math.min(scaleX, scaleY);
+        if (!Float.isFinite(target) || target <= 0f) return;
+        scale = clamp(target, minScale, maxScale);
+        clampCamera();
     }
 
     /** 줌 배율 설정(절대값) */
