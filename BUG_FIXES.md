@@ -345,6 +345,4 @@ public void setInputEnabled(boolean enabled) {
 ---
 
 **작성일**: 2025-11-05  
-**작성자**: AI Assistant  
-**검토자**: -  
-**승인자**: -
+

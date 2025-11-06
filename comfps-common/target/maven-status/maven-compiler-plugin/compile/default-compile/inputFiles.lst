@@ -27,6 +27,7 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\FixedTickRunner.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\types\Wildcat.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\types\General.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\Constants.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\World.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\sound\FootstepSound.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\types\ghost\ability\GhostBasicAttack.java
@@ -63,6 +64,7 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\types\tank\ability\TankBasicAttack.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\CooldownTimer.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\state\DeadState.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\common\SpawnManager.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\types\piper\ability\PiperMark.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\Mathf.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-common\src\main\java\com\fpsgame\character\projectile\PiercingProjectile.java

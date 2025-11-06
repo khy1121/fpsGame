@@ -1,9 +1,9 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.SnapshotV1;
-
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -42,7 +42,7 @@ public final class PlayerSyncService {
 
         // 직전 틱의 입력(서버가 수집/해석)
         float inAx, inAy; // -1..+1 방향 벡터(정규화됨)
-        boolean dirty;    // 최근 입력 수신 플래그(디버그/추후 최적화용)
+        // dirty 플래그는 제거됨 (미사용)
 
         Player(float x, float y) { this.x = x; this.y = y; }
     }
@@ -62,9 +62,9 @@ public final class PlayerSyncService {
     public void setCharacterProvider(CharacterProvider provider) { this.characterProvider = provider; }
 
     /** Set a player's position explicitly (e.g., when selection/spawn changes). */
-    public void setPosition(int sessionId, float x, float y) {
+    public void teleportPlayer(int sessionId, float x, float y) {
         Player p = players.get(sessionId);
-        if (p != null) { p.x = x; p.y = y; p.dirty = true; }
+        if (p != null) { p.x = x; p.y = y; }
     }
 
     // ================= 생명주기 =================
@@ -79,21 +79,26 @@ public final class PlayerSyncService {
                 if (ch != null && ch.getPosition() != null) {
                     px = ch.getPosition().x;
                     py = ch.getPosition().y;
+                    System.out.println("[PlayerSyncService] addPlayer sessionId=" + sessionId + " CharacterProvider에서 받은 위치: (" + px + "," + py + ")");
                 } else {
                     px = (float) (Math.random() * 4.0 - 2.0);
                     py = (float) (Math.random() * 4.0 - 2.0);
+                    System.out.println("[PlayerSyncService] addPlayer sessionId=" + sessionId + " Character null 또는 position null, 랜덤 위치: (" + px + "," + py + ")");
                 }
             } catch (Throwable t) {
                 px = (float) (Math.random() * 4.0 - 2.0);
                 py = (float) (Math.random() * 4.0 - 2.0);
+                System.out.println("[PlayerSyncService] addPlayer sessionId=" + sessionId + " CharacterProvider 예외: " + t.getMessage() + ", 랜덤 위치: (" + px + "," + py + ")");
             }
         } else {
             px = (float) (Math.random() * 4.0 - 2.0);
             py = (float) (Math.random() * 4.0 - 2.0);
+            System.out.println("[PlayerSyncService] addPlayer sessionId=" + sessionId + " CharacterProvider null, 랜덤 위치: (" + px + "," + py + ")");
         }
         Player p = new Player(px, py);
         p.aim = 0f;
         players.put(sessionId, p);
+        System.out.println("[PlayerSyncService] addPlayer 완료: sessionId=" + sessionId + " 최종 위치: (" + px + "," + py + ")");
     }
 
     /** 세션 종료 시 제거 */
@@ -116,10 +121,10 @@ public final class PlayerSyncService {
                 // case A: [byte mask][float aim?]
                 int mask = payload[0] & 0xFF;
                 float ax = 0f, ay = 0f;
-                if ((mask & 0x01) != 0) ay -= 1f; // Up
-                if ((mask & 0x02) != 0) ay += 1f; // Down
-                if ((mask & 0x04) != 0) ax -= 1f; // Left
-                if ((mask & 0x08) != 0) ax += 1f; // Right
+                if ((mask & 0x01) != 0) ay += 1f; // Up
+                if ((mask & 0x02) != 0) ay -= 1f; // Down
+                if ((mask & 0x04) != 0) ax += 1f; // Left
+                if ((mask & 0x08) != 0) ax -= 1f; // Right
                 normalize2(p, ax, ay);
 
                 if (payload.length == 5) {
@@ -131,7 +136,6 @@ public final class PlayerSyncService {
                     int bits = (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
                     p.aim = Float.intBitsToFloat(bits);
                 }
-                p.dirty = true;
                 return;
             }
 
@@ -143,8 +147,6 @@ public final class PlayerSyncService {
                 if (payload.length == 12) {
                     p.aim = toFloat(payload, 8);
                 }
-                p.dirty = true;
-                return;
             }
 
             // 알 수 없는 레이아웃 → 무시
@@ -203,8 +205,8 @@ public final class PlayerSyncService {
                     }
                 } catch (Throwable ignore) {}
             }
-            list.add(new com.fpsgame.common.SnapshotV2.Entry(id, p.x, p.y, p.aim, team, chr));
-            p.dirty = false;
+            // SnapshotV2.Entry requires 9 parameters: id, x, y, aim, team, characterId, hp, tacticalCd, ultimateCd
+            list.add(new com.fpsgame.common.SnapshotV2.Entry(id, p.x, p.y, p.aim, team, chr, 100, 0f, 0f));
         }
         return com.fpsgame.common.SnapshotV2.build(list);
     }

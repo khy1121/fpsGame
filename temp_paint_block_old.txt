@@ -1,0 +1,17 @@
+        // Viewport 영역 계산 (월드 좌표계를 화면에 매핑)
+        Rect viewBounds = viewport.getViewBounds(null);
+        Point topLeft = viewport.worldToScreen(viewBounds.x, viewBounds.y);
+        Point bottomRight = viewport.worldToScreen(viewBounds.x + viewBounds.w, viewBounds.y + viewBounds.h);
+        int viewW = bottomRight.x - topLeft.x;
+        int viewH = bottomRight.y - topLeft.y;
+
+        // 맵 배경 렌더링 (Viewport 영역에 맞춤)
+        if (mapBackground != null) {
+            g2.drawImage(mapBackground, topLeft.x, topLeft.y, viewW, viewH, null);
+        } else {
+            // 맵 이미지가 없으면 기본 배경
+            g2.setColor(new Color(0x1e232b));
+            g2.fillRect(topLeft.x, topLeft.y, viewW, viewH);
+        }
+
+

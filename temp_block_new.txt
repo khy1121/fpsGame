@@ -1,0 +1,97 @@
+    public GamePanel() {
+        // Viewport defaults to a 3000x2000 world configuration.
+        viewport = new Viewport(3000f, 2000f);
+        viewport.setZoomLimits(0.01f, 6.0f);
+        
+        setOpaque(false);
+        setDoubleBuffered(true);
+        setFocusable(true);
+        setBackground(new Color(0x101418));
+
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int w = Math.max(1, getWidth());
+                int h = Math.max(1, getHeight());
+                viewport.resize(w, h);
+                maybeFitViewportToWorld();
+                repaint();
+            }
+        });
+
+        // Key handling (WASD + E, Q, M, C)
+        addKeyListener(new KeyAdapter() {
+            @Override public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = true;
+                    case KeyEvent.VK_A -> keyA = true;
+                    case KeyEvent.VK_S -> keyS = true;
+                    case KeyEvent.VK_D -> keyD = true;
+                    case KeyEvent.VK_M -> minimapEnabled = !minimapEnabled;
+                    case KeyEvent.VK_C -> toggleCameraMode();
+                    case KeyEvent.VK_E -> {
+                        // TODO: Implement tactical ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(1);
+                    }
+                    case KeyEvent.VK_Q -> {
+                        // TODO: Implement ultimate ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(2);
+                    }
+                    default -> {}
+                }
+            }
+            @Override public void keyReleased(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = false;
+                    case KeyEvent.VK_A -> keyA = false;
+                    case KeyEvent.VK_S -> keyS = false;
+                    case KeyEvent.VK_D -> keyD = false;
+                    // E and Q keys are handled in keyPressed
+                    default -> {}
+                }
+            }
+        });
+
+        // Mouse aim & attack
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override public void mouseMoved(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseDragged(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseEntered(MouseEvent e) { requestFocusInWindow(); }
+            @Override public void mouseClicked(MouseEvent e) {
+                requestFocusInWindow();
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    ActionSender as = actionSender;
+                    if (as != null) as.sendAction(0); // BasicAttack
+                }
+            }
+        };
+        addMouseMotionListener(mouse);
+        addMouseListener(mouse);
+
+        // 입력 전송 타이머 (~30 Hz)
+        inputTimer = new Timer(33, ev -> flushInput());
+        inputTimer.setRepeats(true);
+        inputTimer.start();
+
+        // 렌더 타이머 (60 FPS)
+        int delay = Math.max(1, 1000 / TARGET_FPS);
+        new Timer(delay, e -> {
+            updateCamera();
+            repaint();
+        }).start();
+    }
+
+    public void setWorldSize(int w, int h) {
+        worldW = Math.max(1, w);
+        worldH = Math.max(1, h);
+        viewport.setWorldSize(worldW, worldH);
+
+        int panelW = Math.max(1, getWidth());
+        int panelH = Math.max(1, getHeight());
+        viewport.resize(panelW, panelH);
+        maybeFitViewportToWorld();
+        repaint();
+    }
+

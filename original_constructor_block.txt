@@ -1,0 +1,94 @@
+    public GamePanel() {
+        // Viewport 초기??(기본 3000x2000 ??드, ??2.0 ??용)
+        viewport = new Viewport(3000f, 2000f);
+        viewport.setScale(2.0f); // 맵의 ??반??보이??록 ??        
+        setOpaque(false);
+        setDoubleBuffered(true);
+        setFocusable(true);
+        setBackground(new Color(0x101418));
+
+        // 리사??즈 ??        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Dimension d = getSize();
+                viewport.resize(Math.max(1, d.width), Math.max(1, d.height));
+                repaint();
+            }
+        });
+
+        // Key handling (WASD + E, Q, M)
+        addKeyListener(new KeyAdapter() {
+            @Override public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = true;
+                    case KeyEvent.VK_A -> keyA = true;
+                    case KeyEvent.VK_S -> keyS = true;
+                    case KeyEvent.VK_D -> keyD = true;
+                    case KeyEvent.VK_M -> minimapEnabled = !minimapEnabled; // ????
+                    case KeyEvent.VK_E -> {
+                        // TODO: Implement tactical ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(1); // Tactical
+                    }
+                    case KeyEvent.VK_Q -> {
+                        // TODO: Implement ultimate ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(2); // Ultimate
+                    }
+                    default -> {}
+                }
+            }
+            @Override public void keyReleased(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = false;
+                    case KeyEvent.VK_A -> keyA = false;
+                    case KeyEvent.VK_S -> keyS = false;
+                    case KeyEvent.VK_D -> keyD = false;
+                    // E and Q keys are handled in keyPressed
+                    default -> {}
+                }
+            }
+        });
+        
+        // Resize listener
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int w = Math.max(1, getWidth());
+                int h = Math.max(1, getHeight());
+                viewport.resize(w, h);
+                // resize ????시 ??하??????????정 (2.0??카메????
+                viewport.setScale(2.0f);
+            }
+        });
+
+        // Mouse aim & attack
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override public void mouseMoved(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseDragged(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseEntered(MouseEvent e) { requestFocusInWindow(); }
+            @Override public void mouseClicked(MouseEvent e) {
+                requestFocusInWindow();
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    ActionSender as = actionSender;
+                    if (as != null) as.sendAction(0); // BasicAttack
+                }
+            }
+        };
+        addMouseMotionListener(mouse);
+        addMouseListener(mouse);
+
+        // ??력 ??송 ????머 (~30 Hz)
+        Timer inputTimer = new Timer(33, ev -> flushInput());
+        inputTimer.setRepeats(true);
+        inputTimer.start();
+
+        // ??더 ????머 (60 FPS)
+        int delay = Math.max(1, 1000 / TARGET_FPS);
+        new Timer(delay, e -> {
+            updateCamera();
+            repaint();
+        }).start();
+    }
+
+

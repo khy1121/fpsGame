@@ -3,7 +3,7 @@
 **프로젝트**: comfps  
 **버전**: 1.0.0-SNAPSHOT  
 **Java 버전**: 17  
-**빌드 도구**: Maven (선택) 또는 Eclipse/IntelliJ IDEA
+**빌드 도구**: Maven
 
 ---
 
@@ -16,30 +16,55 @@
 
 ---
 
-## 🚀 빠른 시작 (Eclipse/IntelliJ)
+## 🚀 빠른 시작 (Maven)
 
-### 1. 서버 실행
+### 1. 프로젝트 빌드
+```powershell
+mvn clean package -DskipTests
 ```
-메인 클래스: com.fpsgame.server.ServerMain
-포트: 12345 (기본값)
+
+### 2. 서버 실행
+```powershell
+java -cp "comfps-server/target/comfps-server-1.0-SNAPSHOT.jar;comfps-common/target/comfps-common-1.0-SNAPSHOT.jar" com.fpsgame.server.MainServer
+```
+
+서버가 시작되면 다음과 같이 표시됩니다:
+```
+[GameServer] started at 30Hz
+[Server] TCP server started on /0.0.0.0:7777
+```
+
+### 3. 클라이언트 실행 (여러 창 가능)
+```powershell
+java -cp "comfps-client/target/comfps-client-1.0-SNAPSHOT.jar;comfps-common/target/comfps-common-1.0-SNAPSHOT.jar" com.fpsgame.MainLauncher
+```
+
+---
+
+## 🛠️ Eclipse/IntelliJ에서 실행
+
+### 서버 실행
+```
+메인 클래스: com.fpsgame.server.MainServer
+포트: 7777 (기본값)
 ```
 
 **Eclipse에서 실행:**
-1. `src/com/fpsgame/server/ServerMain.java` 우클릭
+1. `comfps-server/src/main/java/com/fpsgame/server/MainServer.java` 우클릭
 2. `Run As` → `Java Application`
 
 **IntelliJ에서 실행:**
-1. `src/com/fpsgame/server/ServerMain.java` 우클릭
-2. `Run 'ServerMain.main()'`
+1. `comfps-server/src/main/java/com/fpsgame/server/MainServer.java` 우클릭
+2. `Run 'MainServer.main()'`
 
-### 2. 클라이언트 실행
+### 클라이언트 실행
 ```
-메인 클래스: com.fpsgame.client.ClientMain
-서버 주소: localhost:12345
+메인 클래스: com.fpsgame.MainLauncher
+서버 주소: localhost:7777
 ```
 
 **실행 방법:**
-1. `src/com/fpsgame/client/ClientMain.java` 우클릭
+1. `comfps-client/src/main/java/com/fpsgame/MainLauncher.java` 우클릭
 2. `Run As` → `Java Application`
 
 ---

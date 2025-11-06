@@ -1,0 +1,9 @@
+public GamePanel() {
+        // Viewport ???? ??? (???? ????? ??? ????)
+        Rect viewBounds = viewport.getViewBounds(null);
+
+        if (mapBackground != null) {
+            Point mapTopLeft = viewport.worldToScreen(0f, 0f);
+            Point mapBottomRight = viewport.worldToScreen(worldW, worldH);
+            int mapW = mapBottomRight.x - mapTopLeft.x;
+            int mapH = mapBottomRight.y 

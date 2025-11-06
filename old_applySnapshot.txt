@@ -1,0 +1,26 @@
+    public void applySnapshot(List<SnapshotV2.Entry> list) {
+        if (list == null) return;
+        Map<Integer, SnapshotV2.Entry> map = new ConcurrentHashMap<>(Math.max(16, list.size()*2));
+        for (SnapshotV2.Entry e : list) map.put(e.id, e);
+        
+        // DEBUG: ??냅????용 로그
+        if (myId >= 0 && !map.containsKey(myId)) {
+            System.out.println("[GamePanel] ??★ WARNING: ??냅??에 myId=" + myId + " ??음! 받?? IDs: " + map.keySet());
+        }
+        
+        // DEBUG: ??냅????치 ??인 (myId?? ??른 ??레??어 비교)
+        if (list != null && list.size() > 0) {
+            StringBuilder sb = new StringBuilder("[GamePanel] ??myId=" + myId + " ??냅??받음: ");
+            for (SnapshotV2.Entry e : list) {
+                String mark = (e.id == myId) ? "??MY?? : "";
+                sb.append(String.format("id=%d%s pos=(%.1f,%.1f) ", e.id, mark, e.x, e.y));
+            }
+            System.out.println(sb.toString());
+        }
+        
+        players.clear();
+        players.putAll(map);
+        // Repaint??Timer가 처리
+    }
+
+

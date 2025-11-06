@@ -17,7 +17,11 @@
     <description>공유 모듈: 프로토콜, 수학, 캐릭터, 월드 등 순수 Java 코드</description>
 
     <dependencies>
-        <!-- 의존성 없음: 순수 Java 기반 모듈 -->
+        <!-- SLF4J API (로깅) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
         
         <!-- 테스트 의존성 (부모에서 상속) -->
         <dependency>

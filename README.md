@@ -180,6 +180,6 @@ mvn test -Dtest=GamePanelCameraFollowTest -pl comfps-client
 
 ---
 
-**개발자**: [프로젝트 팀]  
+**개발자**: [김헌영]  
 **최종 업데이트**: 2025-11-05  
 **버전**: 1.2.0 (카메라 시스템 개선)

@@ -260,6 +260,7 @@ public class NetClient implements Closeable {
     }
 
     private void fireWelcome(Protocol.Welcome w) {
+        System.out.println("[NetClient] ★ WELCOME 수신: myId=" + w.myId + " team=" + w.team + " character=" + w.character);
         dispatch(() -> listener.onWelcome(w));
     }
 
@@ -294,6 +295,17 @@ public class NetClient implements Closeable {
     private void fireSnapshotV2Safe(byte[] payload) {
         try {
             var list = com.fpsgame.common.SnapshotV2.parse(payload);
+            // DEBUG: 스냅샷 수신 로그 (처음 5개 ID만)
+            if (!list.isEmpty()) {
+                StringBuilder sb = new StringBuilder("[NetClient] ★ SNAPSHOT 수신: ");
+                int limit = Math.min(5, list.size());
+                for (int i = 0; i < limit; i++) {
+                    var e = list.get(i);
+                    sb.append(String.format("id=%d(%.0f,%.0f) ", e.id, e.x, e.y));
+                }
+                if (list.size() > 5) sb.append("...");
+                System.out.println(sb.toString());
+            }
             dispatch(() -> listener.onSnapshotV2(list));
         } catch (Exception e) {
             // ignore malformed payload

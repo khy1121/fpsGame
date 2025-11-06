@@ -96,8 +96,6 @@ public final class ClientMain {
             
             // GamePanel 설정
             gamePanel.setBackground(new Color(0x0f1115));
-            gamePanel.setFocusable(true);  // 포커스 가능하게
-            gamePanel.requestFocusInWindow();  // 포커스 요청
 
             JPanel root = new JPanel(new BorderLayout(12, 8));
             root.setBorder(new EmptyBorder(8, 8, 8, 8));
@@ -170,9 +168,6 @@ public final class ClientMain {
                     gamePanel.setActionSender((actionType) -> {
                         try { controller.sendAction(actionType); } catch (Exception ignore) {}
                     });
-                    
-                    // GamePanel에 포커스 주기
-                    gamePanel.requestFocusInWindow();
                     
                     appendSystem("Connecting...");
                     updateUiState(true);

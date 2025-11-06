@@ -580,5 +580,4 @@ Protocol.ROUND_RESULT
 
 **작성일**: 2025-10-31  
 **버전**: 1.0  
-**작성자**: GitHub Copilot  
 **프로젝트**: FPS Game (Multi-Module)

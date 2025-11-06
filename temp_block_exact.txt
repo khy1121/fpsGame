@@ -1,0 +1,112 @@
+    public GamePanel() {
+        // Viewport 초기화 (기본 3000x2000 월드, 줌 2.0 적용)
+        viewport = new Viewport(3000f, 2000f);
+        viewport.setScale(2.0f); // 맵의 절반만 보이도록 줌
+        
+        setOpaque(false);
+        setDoubleBuffered(true);
+        setFocusable(true);
+        setBackground(new Color(0x101418));
+
+        // 리사이즈 훅
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Dimension d = getSize();
+                viewport.resize(Math.max(1, d.width), Math.max(1, d.height));
+                repaint();
+            }
+        });
+
+        // Key handling (WASD + E, Q, M)
+        addKeyListener(new KeyAdapter() {
+            @Override public void keyPressed(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = true;
+                    case KeyEvent.VK_A -> keyA = true;
+                    case KeyEvent.VK_S -> keyS = true;
+                    case KeyEvent.VK_D -> keyD = true;
+                    case KeyEvent.VK_M -> minimapEnabled = !minimapEnabled; // 토글
+                    case KeyEvent.VK_E -> {
+                        // TODO: Implement tactical ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(1); // Tactical
+                    }
+                    case KeyEvent.VK_Q -> {
+                        // TODO: Implement ultimate ability key
+                        ActionSender as = actionSender;
+                        if (as != null) as.sendAction(2); // Ultimate
+                    }
+                    default -> {}
+                }
+            }
+            @Override public void keyReleased(KeyEvent e) {
+                switch (e.getKeyCode()) {
+                    case KeyEvent.VK_W -> keyW = false;
+                    case KeyEvent.VK_A -> keyA = false;
+                    case KeyEvent.VK_S -> keyS = false;
+                    case KeyEvent.VK_D -> keyD = false;
+                    // E and Q keys are handled in keyPressed
+                    default -> {}
+                }
+            }
+        });
+        
+        // Resize listener
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                int w = Math.max(1, getWidth());
+                int h = Math.max(1, getHeight());
+                viewport.resize(w, h);
+                // resize 후 다시 원하는 스케일 설정 (2.0배 카메라 줌)
+                viewport.setScale(2.0f);
+            }
+        });
+
+        // Mouse aim & attack
+        MouseAdapter mouse = new MouseAdapter() {
+            @Override public void mouseMoved(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseDragged(MouseEvent e) { updateAimFromMouse(e.getPoint()); }
+            @Override public void mouseEntered(MouseEvent e) { requestFocusInWindow(); }
+            @Override public void mouseClicked(MouseEvent e) {
+                requestFocusInWindow();
+                if (e.getButton() == MouseEvent.BUTTON1) {
+                    ActionSender as = actionSender;
+                    if (as != null) as.sendAction(0); // BasicAttack
+                }
+            }
+        };
+        addMouseMotionListener(mouse);
+        addMouseListener(mouse);
+
+        // 입력 전송 타이머 (~30 Hz)
+        inputTimer = new Timer(33, ev -> flushInput());
+        inputTimer.setRepeats(true);
+        inputTimer.start();
+
+        // 렌더 타이머 (60 FPS)
+        int delay = Math.max(1, 1000 / TARGET_FPS);
+        new Timer(delay, e -> {
+            updateCamera();
+            repaint();
+        }).start();
+    }
+
+    public void setWorldSize(int w, int h) {
+        worldW = Math.max(1, w);
+        worldH = Math.max(1, h);
+        viewport.setWorldSize(worldW, worldH);
+        // 화면 크기를 기준으로 적절한 스케일 설정
+        int panelW = Math.max(1, getWidth());
+        int panelH = Math.max(1, getHeight());
+        viewport.resize(panelW, panelH);
+        
+        // 카메라 줌: 스케일을 2.0으로 설정하여 맵의 절반 크기만 보이도록
+        // 즉, 3000x2000 맵에서 1500x1000 영역만 보임
+        float targetScale = 2.0f;
+        viewport.setScale(targetScale);
+        repaint();
+    }
+
+

@@ -248,6 +248,6 @@ BUILD SUCCESS ✅
 
 ---
 
-**릴리즈 관리자**: AI Assistant  
+**릴리즈 관리자**: AI Assistant + khy1121  
 **릴리즈 날짜**: 2025-11-05  
 **다음 릴리즈 예정일**: TBD

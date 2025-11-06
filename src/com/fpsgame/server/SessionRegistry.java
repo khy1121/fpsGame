@@ -1,12 +1,5 @@
 package com.fpsgame.server;
 
-import com.fpsgame.common.ProjectilesV2;
-import com.fpsgame.common.Protocol;
-import com.fpsgame.common.Vec2;
-import com.fpsgame.common.character.Character;
-import com.fpsgame.common.character.CharacterFactory;
-import com.fpsgame.common.character.projectile.Projectile;
-import com.fpsgame.common.character.projectile.ProjectileManager;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.net.SocketException;
@@ -15,6 +8,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.fpsgame.common.ProjectilesV2;
+import com.fpsgame.common.Protocol;
+import com.fpsgame.common.Vec2;
+import com.fpsgame.common.character.Character;
+import com.fpsgame.common.character.CharacterFactory;
+import com.fpsgame.common.character.projectile.Projectile;
+import com.fpsgame.common.character.projectile.ProjectileManager;
 
 /** Session registry, routing and broadcast helpers (ASCII only). */
 public class SessionRegistry implements DefaultServerRouter.ServerContext {
@@ -57,15 +58,20 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
     public Character createOrUpdateCharacter(int sessionId, int teamIdx, int characterIdx) {
         com.fpsgame.common.GameEnums.Team[] teams = com.fpsgame.common.GameEnums.Team.values();
         com.fpsgame.common.GameEnums.Team team = teams[(teamIdx < 0 || teamIdx >= teams.length) ? 0 : teamIdx];
-        float sx = (team == com.fpsgame.common.GameEnums.Team.RED) ? (worldW * 0.1f) : (worldW * 0.9f);
-        float sy = (worldH * 0.5f);
+        float sx = (team == com.fpsgame.common.GameEnums.Team.RED) ? (worldW * 0.15f) : (worldW * 0.85f);
+        float sy = (worldH * 0.85f);
         Vec2 spawn = new Vec2(sx, sy);
+        System.out.println("[SessionRegistry] createOrUpdateCharacter sessionId=" + sessionId + " team=" + team + " worldW=" + worldW + " worldH=" + worldH + " spawn=(" + sx + "," + sy + ")");
         Character ch = CharacterFactory.create(characterIdx, team, spawn);
+        System.out.println("[SessionRegistry] 캐릭터 생성 완료: ch.getPosition()=(" + ch.getPosition().x + "," + ch.getPosition().y + ")");
         characters.put(sessionId, ch);
         // Also align PlayerSyncService position to spawn
         PlayerSyncService s = syncService;
         if (s != null) {
-            try { s.setPosition(sessionId, spawn.x, spawn.y); } catch (Throwable ignore) {}
+            try { 
+                s.setPosition(sessionId, spawn.x, spawn.y);
+                System.out.println("[SessionRegistry] setPosition 호출 완료: (" + spawn.x + "," + spawn.y + ")");
+            } catch (Throwable ignore) {}
         }
         return ch;
     }
@@ -195,6 +201,16 @@ public class SessionRegistry implements DefaultServerRouter.ServerContext {
         GameServer gs = gameServer;
         if (gs != null) {
             try { gs.onPlayerJoin(id); } catch (Throwable ignore) {}
+        }
+        
+        // 기본 캐릭터 생성 - addPlayer 이전에 호출
+        // 팀은 세션 ID 기반으로 순서대로 배정 (1→RED, 2→BLUE, 3→RED, ...)
+        int teamIdx = ((id - 1) % 2); // 1→0(RED), 2→1(BLUE), 3→0(RED), ...
+        try {
+            createOrUpdateCharacter(id, teamIdx, 6); // characterIdx=6 (Raven)
+            log("session " + id + " default character created (team=" + teamIdx + ") before addPlayer");
+        } catch (Throwable t) {
+            log("session " + id + " character creation failed: " + t.getMessage());
         }
         
         PlayerSyncService ss = syncService;

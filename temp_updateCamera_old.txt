@@ -1,0 +1,15 @@
+    private void updateCamera() {
+        SnapshotV2.Entry me = players.get(myId);
+        if (me != null) {
+            // 카메라가 플레이어를 중심으로 따라가도록 설정
+            // 이렇게 하면 플레이어가 이동할 때 맵이 이동하는 효과가 생김
+            viewport.setCenter(me.x, me.y);
+        } else {
+            // DEBUG: 내 캐릭터를 찾을 수 없음
+            if (myId >= 0) {
+                System.out.println("[GamePanel] WARNING: myId=" + myId + " not found in players. players.size=" + players.size() + ", keys=" + players.keySet());
+            }
+        }
+    }
+    
+

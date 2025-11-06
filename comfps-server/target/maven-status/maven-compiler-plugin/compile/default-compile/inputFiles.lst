@@ -3,13 +3,13 @@ C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\MainServer.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\DefaultServerRouter.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\MapVoteManager.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\PlayerSyncService.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\RoundController.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\LobbyState.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\SessionRegistry.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\RouterHooksAdapter.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\server\ServerSession.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\server\SessionRegistry.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\NetTickLoop.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\ServerMain.java
+C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\server\PlayerSyncService.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\TcpServer.java
 C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\PlayerServerRouter.java
-C:\Users\rlagj\eclipse-workspace\comfps\comfps-server\src\main\java\com\fpsgame\ServerSession.java

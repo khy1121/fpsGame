@@ -162,6 +162,7 @@ com\fpsgame\client\NetPlaygroundMain.class
 com\fpsgame\client\MainClient$NamedFactory.class
 com\fpsgame\client\ui\GameCanvas$2.class
 com\fpsgame\client\MainClient$ClientWindow$2.class
+com\fpsgame\client\ui\GamePanel$CameraMode.class
 com\fpsgame\client\ui\CharacterSelectDialog.class
 com\fpsgame\client\model\Settings.class
 com\fpsgame\client\ui\LobbyFrame.class

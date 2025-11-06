@@ -30,32 +30,48 @@ import com.fpsgame.common.Rect;
 import com.fpsgame.common.SnapshotV2;
 
 /**
- * 게임 ?�더 ?�널 v2 (?�전 ?�구�?
- * - Viewport 카메???�스?�으�??�레?�어 추적
- * - Timer 기반 60fps ?�더 루프
- * - �?배경 ?��?지 ?�더�? * - 캐릭???�프?�이??(방향 ?�전)
- * - ?�사�?& 미니�??�버?�이
+ * 게임 패널 v2 (전면 개편)
+ * - Viewport 카메라 클래스로 렌더링 추적
+ * - Timer 기반 60fps 렌더 루프
+ * - 맵 배경 이미지 렌더링
+ * - 캐릭터 스프라이트(방향 회전)
+ * - 투사체 & 미니맵 표시
  */
 public class GamePanel extends JPanel {
     private static final int TARGET_FPS = 60;
-\n    public enum CameraMode {\n        MAP_OVERVIEW,\n        PLAYER_FOLLOW\n    }\n\n    
-    // ?�드 & 카메??    private final Viewport viewport;
-    private volatile CameraMode cameraMode = CameraMode.MAP_OVERVIEW;\n    private volatile boolean autoFitViewport = true;\n    private volatile float followModeScale = 2.0f;\n    private volatile float worldW = 3000f;
+
+    public enum CameraMode {
+        MAP_OVERVIEW,
+        PLAYER_FOLLOW
+    }
+
+    
+    // 뷰 & 카메라
+    private final Viewport viewport;
+    private volatile CameraMode cameraMode = CameraMode.MAP_OVERVIEW;
+    private volatile boolean autoFitViewport = true;
+    private volatile float followModeScale = 2.0f;
+    private volatile float worldW = 3000f;
     private volatile float worldH = 2000f;
     private volatile int myId = -1;
     // TODO: Use currentMapId for map-specific rendering
     // private volatile int currentMapId = -1;
+    
+    // 부드러운 카메라 이동을 위한 필드
+    private volatile float smoothCameraX = 0f;
+    private volatile float smoothCameraY = 0f;
+    private static final float CAMERA_LERP_FACTOR = 0.15f;
 
     private final Map<Integer, SnapshotV2.Entry> players = new ConcurrentHashMap<>();
     private volatile List<ProjectilesV2.Entry> projectiles = java.util.Collections.emptyList();
 
-    // �?배경 ?��?지 캐시
+    // 맵 배경 이미지 캐시
     private BufferedImage mapBackground = null;
     
-    // 캐릭???��?지 캐시 (characterId -> ?��?지)
+    // 캐릭터 이미지 캐시 (characterId -> 이미지)
     private final Map<Integer, BufferedImage> characterImages = new HashMap<>();
 
-    // 미니�??�정
+    // 미니맵 설정
     private static final int MINIMAP_MAX_W = 220;
     private static final int MINIMAP_MAX_H = 160;
     private static final int MINIMAP_MARGIN = 12;
@@ -63,12 +79,13 @@ public class GamePanel extends JPanel {
     private static final int MINIMAP_DOT_PROJECTILE = 3;
     private volatile boolean minimapEnabled = true;
 
-    // HUD ?�트
+    // HUD 폰트
     private final Font hudFont = new Font(Font.MONOSPACED, Font.PLAIN, 12);
     private final Font hudFontBold = new Font(Font.MONOSPACED, Font.BOLD, 14);
     private final Font hudFontLarge = new Font(Font.MONOSPACED, Font.BOLD, 16);
 
-    // HUD ?�태 ?�이??    private volatile String phaseText = "LOBBY";
+    // HUD 상태 데이터
+    private volatile String phaseText = "LOBBY";
     private volatile int countdownSeconds = -1;
     private volatile int blueScore = 0;
     private volatile int redScore = 0;
@@ -77,10 +94,10 @@ public class GamePanel extends JPanel {
     private volatile String systemMessage = "";
     private volatile boolean isConnected = false;
     
-    // ?�레?�어 HP/?�킬 ?�태 (myId 기�?)
+    // 플레이어 HP/스킬 상태 (myId 기준)
     private volatile int myHp = 100;
     private volatile int myMaxHp = 100;
-    private volatile float tacticalCooldown = 0f; // 0~1 (0=?�용가??
+    private volatile float tacticalCooldown = 0f; // 0~1 (0=사용가능)
     private volatile float ultimateCooldown = 0f;
 
     // Input state (WASD for movement)
@@ -223,9 +240,12 @@ public class GamePanel extends JPanel {
         if (!autoFitViewport) return;
         viewport.fitToWorld();
     }
+    
     public void setMyId(int id) { 
-        this.myId = id; 
-        System.out.println("[GamePanel] ?�★ myId ?�정?? " + id + " (?�전 myId=" + this.myId + ")");
+        this.myId = id;
+        // 카메라 위치 초기화
+        smoothCameraX = 0f;
+        smoothCameraY = 0f;
     }
 
     /** Bind a sender that transmits input to server. */
@@ -242,7 +262,7 @@ public class GamePanel extends JPanel {
         repaint();
     }
     
-    // ===== HUD ?�데?�트 메서??=====
+    // ===== HUD 업데이트 메서드 =====
     
     public void updatePhase(int phaseCode) {
         this.phaseText = switch (phaseCode) {
@@ -292,9 +312,9 @@ public class GamePanel extends JPanel {
         repaint();
     }
     
-    // ===== 카메??& ?�력 =====
+    // ===== 카메라 & 렌더 =====
     
-    // 카메???�데?�트 (???�레?�어 추적)
+    // 카메라 업데이트 (플레이어 추적)
     private void updateCamera() {
         if (cameraMode == CameraMode.MAP_OVERVIEW) {
             viewport.setCenter(worldW * 0.5f, worldH * 0.5f);
@@ -305,10 +325,24 @@ public class GamePanel extends JPanel {
         SnapshotV2.Entry me = players.get(myId);
         if (me != null) {
             viewport.setScale(followModeScale);
-            viewport.setCenter(me.x, me.y);
+            
+            // 부드러운 카메라 이동 (Lerp)
+            if (smoothCameraX == 0f && smoothCameraY == 0f) {
+                // 첫 프레임: 즉시 플레이어 위치로 이동
+                smoothCameraX = me.x;
+                smoothCameraY = me.y;
+            } else {
+                // 부드럽게 플레이어를 따라감
+                smoothCameraX += (me.x - smoothCameraX) * CAMERA_LERP_FACTOR;
+                smoothCameraY += (me.y - smoothCameraY) * CAMERA_LERP_FACTOR;
+            }
+            
+            viewport.setCenter(smoothCameraX, smoothCameraY);
         } else {
-            if (myId >= 0) {
-                System.out.println("[GamePanel] WARNING: myId=" + myId + " not found in players. players.size=" + players.size() + ", keys=" + players.keySet());
+            // 플레이어가 없으면 카메라 초기화
+            if (myId >= 0 && smoothCameraX == 0f && smoothCameraY == 0f) {
+                smoothCameraX = worldW * 0.5f;
+                smoothCameraY = worldH * 0.5f;
             }
         }
     }
@@ -328,7 +362,7 @@ public class GamePanel extends JPanel {
         
         System.out.println("[GamePanel] Loading map background: " + mapName + " (mapId=" + mapId + ")");
         
-        // 리소?�에??�??��?지 로드 (?�거??방식 참고)
+        // 리소스에서 맵 이미지 로드 (복수의 방식 참고)
         BufferedImage img = ImageUtil.loadResource(GamePanel.class, "/assets/maps/" + mapName + ".png");
         if (img == null) img = ImageUtil.loadResource(GamePanel.class, "/assets/maps/" + mapName + ".jpg");
         if (img == null) img = ImageUtil.loadFile("assets/maps/" + mapName + ".png");
@@ -368,14 +402,14 @@ public class GamePanel extends JPanel {
         
         System.out.println("[GamePanel] Loading character: " + charName + " (id=" + characterId + ")");
         
-        // ?�거??방식 참고: 리소???�선, ?�일 ?�백
+        // 복수의 방식 참고: 리소스 우선, 파일 대안
         BufferedImage img = ImageUtil.loadResource(GamePanel.class, "/assets/characters/" + charName + ".png");
         if (img == null) img = ImageUtil.loadResource(GamePanel.class, "/assets/characters/" + charName + ".jpg");
         if (img == null) img = ImageUtil.loadFile("assets/characters/" + charName + ".png");
         if (img == null) img = ImageUtil.loadFile("assets/characters/" + charName + ".jpg");
         
         if (img != null) {
-            // ?�색 배경 ?�거
+            // 흰색 배경 제거
             img = ImageUtil.whiteToTransparent(img, 20);
             characterImages.put(characterId, img);
             System.out.println("[GamePanel] Character loaded: " + charName + " (" + img.getWidth() + "x" + img.getHeight() + ")");
@@ -391,24 +425,8 @@ public class GamePanel extends JPanel {
         Map<Integer, SnapshotV2.Entry> map = new ConcurrentHashMap<>(Math.max(16, list.size()*2));
         for (SnapshotV2.Entry e : list) map.put(e.id, e);
         
-        // DEBUG: ?�냅???�용 로그
-        if (myId >= 0 && !map.containsKey(myId)) {
-            System.out.println("[GamePanel] ?�★ WARNING: ?�냅?�에 myId=" + myId + " ?�음! 받�? IDs: " + map.keySet());
-        }
-        
-        // DEBUG: ?�냅???�치 ?�인 (myId?� ?�른 ?�레?�어 비교)
-        if (list != null && list.size() > 0) {
-            StringBuilder sb = new StringBuilder("[GamePanel] ??myId=" + myId + " ?�냅??받음: ");
-            for (SnapshotV2.Entry e : list) {
-                String mark = (e.id == myId) ? "?�MY?? : "";
-                sb.append(String.format("id=%d%s pos=(%.1f,%.1f) ", e.id, mark, e.x, e.y));
-            }
-            System.out.println(sb.toString());
-        }
-        
         players.clear();
         players.putAll(map);
-        // Repaint??Timer가 처리
     }
 
     public void applyProjectiles(List<ProjectilesV2.Entry> list) {
@@ -419,7 +437,8 @@ public class GamePanel extends JPanel {
         SnapshotV2.Entry me = players.get(myId);
         if (me == null || p == null) { aimRad = null; return; }
         
-        // ?�크�?좌표�??�드 좌표�?변??        com.fpsgame.common.Vec2 worldPos = viewport.screenToWorld(p.x, p.y, null);
+        // 스크린 좌표를 월드 좌표로 변환
+        com.fpsgame.common.Vec2 worldPos = viewport.screenToWorld(p.x, p.y, null);
         double dx = worldPos.x - me.x;
         double dy = worldPos.y - me.y;
         aimRad = (float) Math.atan2(dy, dx);
@@ -428,16 +447,19 @@ public class GamePanel extends JPanel {
     private void flushInput() {
         InputSender sender = this.inputSender;
         if (sender == null) return;
+        
+        // 자신의 캐릭터가 게임에 있을 때만 입력 전송
+        SnapshotV2.Entry me = players.get(myId);
+        if (me == null && myId >= 0) {
+            // 자신의 캐릭터가 아직 스폰되지 않았거나 죽은 상태
+            return;
+        }
+        
         int mask = 0;
         if (keyW) mask |= 0x01;
         if (keyS) mask |= 0x02;
         if (keyA) mask |= 0x04;
         if (keyD) mask |= 0x08;
-        
-        // DEBUG: ?�력 ?�송 로그 (?�력???�을 ?�만)
-        if (mask != 0) {
-            System.out.println("[GamePanel] ??myId=" + myId + " ?�력 ?�송: mask=" + mask + " W=" + keyW + " S=" + keyS + " A=" + keyA + " D=" + keyD);
-        }
         
         sender.send((byte)(mask & 0xFF), aimRad);
     }
@@ -451,97 +473,132 @@ public class GamePanel extends JPanel {
 
         int w = getWidth(), h = getHeight();
         
-        // 배경??        g2.setColor(new Color(0x0f1115));
+        // Background color
+        g2.setColor(new Color(0x0f1115));
         g2.fillRect(0, 0, w, h);
 
-        // Viewport ?�역 계산 (?�드 좌표계�? ?�면??매핑)
-        Rect viewBounds = viewport.getViewBounds(null);
-        Point topLeft = viewport.worldToScreen(viewBounds.x, viewBounds.y);
-        Point bottomRight = viewport.worldToScreen(viewBounds.x + viewBounds.w, viewBounds.y + viewBounds.h);
-        int viewW = bottomRight.x - topLeft.x;
-        int viewH = bottomRight.y - topLeft.y;
-
-        // �?배경 ?�더�?(Viewport ?�역??맞춤)
+        // 맵 배경 렌더링 (전체 월드 크기에 맞춤)
         if (mapBackground != null) {
-            g2.drawImage(mapBackground, topLeft.x, topLeft.y, viewW, viewH, null);
+            // 월드 (0, 0)과 (worldW, worldH)의 스크린 좌표 계산
+            Point mapTopLeft = viewport.worldToScreen(0, 0);
+            Point mapBottomRight = viewport.worldToScreen(worldW, worldH);
+            
+            int mapW = mapBottomRight.x - mapTopLeft.x;
+            int mapH = mapBottomRight.y - mapTopLeft.y;
+            
+            // 전체 맵을 월드 크기에 맞춰 렌더링
+            g2.drawImage(mapBackground, mapTopLeft.x, mapTopLeft.y, mapW, mapH, null);
         } else {
-            // �??��?지가 ?�으�?기본 배경
+            // 맵 이미지가 없으면 뷰포트 영역만 기본 배경으로 채우기
+            Rect viewBounds = viewport.getViewBounds(null);
+            Point vTopLeft = viewport.worldToScreen(viewBounds.x, viewBounds.y);
+            Point vBottomRight = viewport.worldToScreen(viewBounds.x + viewBounds.w, viewBounds.y + viewBounds.h);
+            int viewW = vBottomRight.x - vTopLeft.x;
+            int viewH = vBottomRight.y - vTopLeft.y;
+            
             g2.setColor(new Color(0x1e232b));
-            g2.fillRect(topLeft.x, topLeft.y, viewW, viewH);
+            g2.fillRect(vTopLeft.x, vTopLeft.y, viewW, viewH);
         }
 
-        // ?�사�??�더�?(?�?�별 차별??
+        // 투사체 렌더링(맵 위에 차곡차곡)
         for (ProjectilesV2.Entry p : projectiles) {
             if (!p.active) continue;
             Point pp = viewport.worldToScreen(p.x, p.y);
             
-            // ?�?�별 ?�상 �??�기 (고정 ?�기)
             Color bulletColor;
             int r;
             switch (p.type) {
                 case ProjectilesV2.TYPE_BULLET:
                 default:
-                    bulletColor = new Color(0xffd54f); // ?��???                    r = 4;
+                    bulletColor = new Color(0xffd54f); // Yellow color
+                    r = 4;
                     break;
             }
             
-            // ?�곽??(빛나???�과)
             g2.setColor(new Color(bulletColor.getRed(), bulletColor.getGreen(), bulletColor.getBlue(), 100));
             g2.fillOval(pp.x - r - 2, pp.y - r - 2, (r + 2) * 2, (r + 2) * 2);
-            
-            // 메인 ?�사�?            g2.setColor(bulletColor);
+            g2.setColor(bulletColor);
             g2.fillOval(pp.x - r, pp.y - r, r * 2, r * 2);
             
-            // 중앙 ?�이?�이??(반짝??
+          
             g2.setColor(new Color(255, 255, 255, 180));
             int hr = Math.max(1, r / 2);
             g2.fillOval(pp.x - hr, pp.y - hr, hr * 2, hr * 2);
         }
 
-        // ?�레?�어 ?�더�?(캐릭???��?지 + 방향 ?�전)
+        // ========================================
+        // Player Character Rendering
+        // ========================================
         for (SnapshotV2.Entry e : players.values()) {
-            Point pp = viewport.worldToScreen(e.x, e.y);
+            // Convert world coordinates to screen coordinates
+            Point screenPos = viewport.worldToScreen(e.x, e.y);
             
+            // 1. Draw character image (rotated based on aim direction)
             BufferedImage charImg = getCharacterImage(e.characterId);
             if (charImg != null) {
-                    // 캐릭???��?지�?aim 방향?�로 ?�전 (고정 ?�기 64px)
-                    int imgSize = 64;
+                int imgSize = 64;
                 
-                AffineTransform oldTx = g2.getTransform();
-                AffineTransform tx = new AffineTransform();
-                tx.translate(pp.x, pp.y);
-                tx.rotate(e.aim); // aim ?�디?�으�??�전
-                tx.translate(-imgSize / 2.0, -imgSize / 2.0);
+                // Save current transform
+                AffineTransform oldTransform = g2.getTransform();
                 
-                g2.setTransform(tx);
+                // Create rotation transform centered at player position
+                AffineTransform transform = new AffineTransform();
+                transform.translate(screenPos.x, screenPos.y);  // Move to player screen position
+                transform.rotate(e.aim);                         // Rotate by aim angle
+                transform.translate(-imgSize / 2.0, -imgSize / 2.0);  // Center the image
+                
+                g2.setTransform(transform);
                 g2.drawImage(charImg, 0, 0, imgSize, imgSize, null);
-                g2.setTransform(oldTx);
+                g2.setTransform(oldTransform);  // Restore original transform
             } else {
-                // ?��?지가 ?�으�??�으�??�시 (고정 ?�기)
-                int r = 16;
-                Color body = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
-                g2.setColor(body);
-                g2.fillOval(pp.x - r, pp.y - r, r * 2, r * 2);
+                // Fallback: Draw colored circle if image not available
+                int radius = 16;
+                Color bodyColor = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
+                g2.setColor(bodyColor);
+                g2.fillOval(screenPos.x - radius, screenPos.y - radius, radius * 2, radius * 2);
+            }
+
+            // 2. Draw health bar (above player)
+            int healthBarWidth = 40;
+            int healthBarHeight = 6;
+            int healthBarX = screenPos.x - healthBarWidth / 2;
+            int healthBarY = screenPos.y - 45;
+            
+            int maxHealth = 100;  // Default max HP
+            
+            // Background (red)
+            g2.setColor(new Color(200, 0, 0));
+            g2.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+            
+            // Foreground (green based on current HP)
+            if (e.hp > 0) {
+                g2.setColor(new Color(0, 200, 0));
+                int currentHealthWidth = (int) (healthBarWidth * Math.min(e.hp, maxHealth) / (float)maxHealth);
+                g2.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
             }
             
-            // ???�레?�어 강조???�로?�헤?�로 ?��?(?�색 ?�두�??�거)
-            
-            // ?� ?�상 ?�시 (?��? ??- 고정 ?�기)
+            // Health bar border
+            g2.setColor(Color.BLACK);
+            g2.setStroke(new BasicStroke(1f));
+            g2.drawRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+            // 3. Draw team indicator (circle above health bar)
             Color teamColor = (e.team == 1) ? new Color(0x4f8cff) : new Color(0xff6f61);
             g2.setColor(teamColor);
-            int tr = 5;
-            int ty = pp.y - 40;
-            g2.fillOval(pp.x - tr, ty, tr * 2, tr * 2);
-            
-            // ?�레?�어 ID ?�시 (?�네???�???�시)
+            int teamIndicatorRadius = 6;
+            int teamIndicatorY = healthBarY - 12;
+            g2.fillOval(screenPos.x - teamIndicatorRadius, teamIndicatorY, 
+                       teamIndicatorRadius * 2, teamIndicatorRadius * 2);
+
+            // 4. Draw player ID (above team indicator)
             g2.setFont(hudFont);
             g2.setColor(Color.WHITE);
             String idText = "#" + e.id;
-            int idW = g2.getFontMetrics().stringWidth(idText);
-            g2.drawString(idText, pp.x - idW / 2, ty - 8);
+            int idWidth = g2.getFontMetrics().stringWidth(idText);
+            g2.drawString(idText, screenPos.x - idWidth / 2, teamIndicatorY - 2);
         }
 
-        // HUD ?�보 (좌상??
+        // HUD 정보 표시
         g2.setFont(hudFont);
         g2.setColor(Color.YELLOW);
         g2.drawString("Players: " + players.size(), 10, 20);
@@ -550,38 +607,37 @@ public class GamePanel extends JPanel {
             viewport.getCenter(null).x, 
             viewport.getCenter(null).y), 10, 35);
 
-        // 미니�??�버?�이
+        // 미니맵 그리기
         drawMinimap(g2, w, h);
-        
-        // HUD ?�버?�이
+
+        // HUD 정보 그리기
         drawHUD(g2, w, h);
-        
-        // ?�로?�헤??        drawCrosshair(g2, w, h);
+
+        // 조준선 그리기
+        drawCrosshair(g2, w, h);
 
         g2.dispose();
     }
 
-    // ?�상???�버?�이 미니�??�더�?(?�치 조정 - 맵을 가리�? ?�게)
+    // Top-left minimap rendering (position adjusted - right-bottom corner)
     private void drawMinimap(Graphics2D g2, int panelW, int panelH) {
         if (!minimapEnabled) return;
         
-        // ?�드 ?�체 ?�역 가?�오�?        float ww = this.worldW;
+        // Get world bounds
+        float ww = this.worldW;
         float wh = this.worldH;
         
         if (ww <= 0 || wh <= 0) return;
 
-        // ?�드 비율 ?��??�면??최�? ?�기 ?�에 맞춤
         double msx = MINIMAP_MAX_W / (double) ww;
         double msy = MINIMAP_MAX_H / (double) wh;
         double ms = Math.min(msx, msy);
         int mmW = Math.max(40, (int) Math.round(ww * ms));
         int mmH = Math.max(40, (int) Math.round(wh * ms));
 
-        // ?�치 조정: ?�하?�으�??�동 (맵을 가리�? ?�게)
         int x0 = panelW - MINIMAP_MARGIN - mmW;
         int y0 = panelH - MINIMAP_MARGIN - mmH;
 
-        // 배경 (?�명??
         g2.setColor(new Color(0x0b0d12, true));
         g2.fillRect(x0 - 2, y0 - 2, mmW + 4, mmH + 4);
         g2.setColor(new Color(0x20252e));
@@ -589,12 +645,13 @@ public class GamePanel extends JPanel {
         g2.setColor(new Color(0x445062));
         g2.setStroke(new BasicStroke(1.5f));
         g2.drawRect(x0, y0, mmW, mmH);
-        
-        // �?구조 ?�시 (간단??경계??
+
+        // 미니맵 경계 (내부 여백)
         g2.setColor(new Color(80, 80, 80, 100));
         g2.drawRect(x0 + 2, y0 + 2, mmW - 4, mmH - 4);
 
-        // ?�사�?        g2.setColor(new Color(0xffd54f));
+        // 플레이어 위치 표시
+        g2.setColor(new Color(0xffd54f));
         for (ProjectilesV2.Entry p : projectiles) {
             if (!p.active) continue;
             int mx = x0 + (int) Math.round(p.x * ms);
@@ -602,12 +659,12 @@ public class GamePanel extends JPanel {
             g2.fillOval(mx - MINIMAP_DOT_PROJECTILE/2, my - MINIMAP_DOT_PROJECTILE/2, MINIMAP_DOT_PROJECTILE, MINIMAP_DOT_PROJECTILE);
         }
 
-        // ?�레?�어 (같�? ?��??�시)
+        // 플레이어 팀 표시 (아래 팀 아이콘)
         SnapshotV2.Entry me = players.get(myId);
         int myTeam = (me != null) ? me.team : -1;
         
         for (SnapshotV2.Entry e : players.values()) {
-            // 같�? ?��?미니맵에 ?�시
+            // 팀이 다르면 표시하지 않음
             if (myTeam >= 0 && e.team != myTeam) continue;
             
             int mx = x0 + (int) Math.round(e.x * ms);
@@ -616,47 +673,47 @@ public class GamePanel extends JPanel {
             g2.setColor(teamColor);
             g2.fillOval(mx - MINIMAP_DOT_PLAYER/2, my - MINIMAP_DOT_PLAYER/2, MINIMAP_DOT_PLAYER, MINIMAP_DOT_PLAYER);
             
-            // ??캐릭??강조
+            // 플레이어 ID 표시
             if (e.id == myId) {
                 g2.setColor(Color.WHITE);
                 g2.drawOval(mx - MINIMAP_DOT_PLAYER/2 - 2, my - MINIMAP_DOT_PLAYER/2 - 2, MINIMAP_DOT_PLAYER + 4, MINIMAP_DOT_PLAYER + 4);
             }
         }
     }
-    
-    // HUD ?�더�?(?�단: 게임 ?�태, ?�단: HP/?�킬)
+
+    // HUD 정보 표시 (상단: 타이머, 하단: HP/스킬)
     private void drawHUD(Graphics2D g2, int w, int h) {
-        // ?�단 좌측: Phase, Countdown, Score
+        // 상단 HUD: Phase, Countdown, Score
         g2.setFont(hudFontBold);
         int y = 15;
         
         // Phase
         g2.setColor(new Color(180, 220, 255));
         g2.drawString("Phase: " + phaseText, 10, y);
-        
-        // Countdown (?��???
+
+        // Countdown (타이머)
         if (countdownSeconds >= 0) {
             g2.setColor(new Color(255, 220, 120));
             g2.drawString("Countdown: " + countdownSeconds + "s", 150, y);
         }
-        
-        // Score (?�색)
+
+        // Score (점수)
         g2.setColor(new Color(200, 255, 200));
         g2.drawString("Score " + blueScore + " : " + redScore, 320, y);
         
         // Ready count
         g2.setColor(new Color(200, 220, 255));
         g2.drawString("Ready " + readyCount + "/" + totalPlayers, 480, y);
-        
-        // ?�단 ?�측: ?�결 ?�태
-        String connText = isConnected ? "??Connected" : "??Disconnected";
+
+        // 연결 상태 표시: 연결됨 / 연결 끊김
+        String connText = isConnected ? "Connected" : "Disconnected";
         Color connColor = isConnected ? new Color(100, 255, 100) : new Color(255, 100, 100);
         g2.setColor(connColor);
         g2.setFont(hudFont);
         int connW = g2.getFontMetrics().stringWidth(connText);
         g2.drawString(connText, w - connW - 15, 15);
         
-        // ?�스??메시지 (중앙 ?�단)
+        // 시스템 메시지 표시 (가운데 정렬)
         if (!systemMessage.isEmpty()) {
             g2.setFont(hudFontLarge);
             g2.setColor(new Color(255, 190, 190));
@@ -664,37 +721,42 @@ public class GamePanel extends JPanel {
             g2.drawString(systemMessage, (w - msgW) / 2, 50);
         }
         
-        // ?�단 좌측: HP �?        drawHealthBar(g2, 20, h - 80);
+        // Bottom left: HP bar
+        drawHealthBar(g2, 20, h - 80);
         
-        // ?�단 중앙: ?�킬 쿨다??        drawSkillCooldowns(g2, w / 2 - 100, h - 80);
+        // Bottom center: Skill cooldowns
+        drawSkillCooldowns(g2, w / 2 - 100, h - 80);
     }
     
-    // HP �??�더�?    private void drawHealthBar(Graphics2D g2, int x, int y) {
+    // HP bar rendering
+    private void drawHealthBar(Graphics2D g2, int x, int y) {
         int barW = 200;
         int barH = 20;
         
-        // 배경 (?�두??빨강)
+        // Background (dark red)
         g2.setColor(new Color(60, 20, 20));
         g2.fillRect(x, y, barW, barH);
         
-        // HP (밝�? 빨강)
+        // HP (bright red)
         float hpRatio = (float) myHp / myMaxHp;
         int hpW = Math.round(barW * hpRatio);
         g2.setColor(new Color(220, 50, 50));
         g2.fillRect(x, y, hpW, barH);
         
-        // ?�두�?        g2.setColor(Color.WHITE);
+        // Border
+        g2.setColor(Color.WHITE);
         g2.setStroke(new BasicStroke(2f));
         g2.drawRect(x, y, barW, barH);
         
-        // HP ?�스??        g2.setFont(hudFont);
+        // HP text
+        g2.setFont(hudFont);
         String hpText = myHp + " / " + myMaxHp;
         int textW = g2.getFontMetrics().stringWidth(hpText);
         g2.setColor(Color.WHITE);
         g2.drawString(hpText, x + (barW - textW) / 2, y + barH - 5);
     }
     
-    // ?�킬 쿨다???�더�?(E: Tactical, Q: Ultimate)
+    // Skill cooldown rendering (E: Tactical, Q: Ultimate)
     private void drawSkillCooldowns(Graphics2D g2, int x, int y) {
         int skillSize = 50;
         int gap = 10;
@@ -707,28 +769,30 @@ public class GamePanel extends JPanel {
     }
     
     private void drawSkillBox(Graphics2D g2, int x, int y, int size, String key, float cooldown, Color color) {
-        // 배경
+        // Background
         g2.setColor(new Color(30, 30, 30));
         g2.fillRect(x, y, size, size);
         
-        // 쿨다???�버?�이 (?�두??반투�?
+        // Cooldown overlay (dark semi-transparent)
         if (cooldown > 0.01f) {
             int cdHeight = Math.round(size * cooldown);
             g2.setColor(new Color(0, 0, 0, 180));
             g2.fillRect(x, y, size, cdHeight);
         }
         
-        // ?�두�?        g2.setColor(cooldown > 0.01f ? Color.GRAY : color);
+        // Border
+        g2.setColor(cooldown > 0.01f ? Color.GRAY : color);
         g2.setStroke(new BasicStroke(2f));
         g2.drawRect(x, y, size, size);
         
-        // ???�시
+        // Key display
         g2.setFont(hudFontBold);
         g2.setColor(Color.WHITE);
         int textW = g2.getFontMetrics().stringWidth(key);
         g2.drawString(key, x + (size - textW) / 2, y + size / 2 + 5);
         
-        // 쿨다???�센??        if (cooldown > 0.01f) {
+        // Cooldown percentage
+        if (cooldown > 0.01f) {
             String cdText = Math.round(cooldown * 100) + "%";
             g2.setFont(hudFont);
             int cdW = g2.getFontMetrics().stringWidth(cdText);
@@ -736,37 +800,45 @@ public class GamePanel extends JPanel {
         }
     }
     
-    // ?�로?�헤???�더�?(??캐릭???�치???�시 + 조�? 방향)
     private void drawCrosshair(Graphics2D g2, int w, int h) {
-        // ??캐릭??찾기
         SnapshotV2.Entry me = players.get(myId);
         if (me == null) return;
-        
-        // ??캐릭?�의 ?�면 좌표
+
+        // Get player screen position
         Point myScreenPos = viewport.worldToScreen(me.x, me.y);
-        int cx = myScreenPos.x;
-        int cy = myScreenPos.y;
         
-        // 기본 ??��??(??캐릭???�치)
-        int len = 12;
+        // Draw crosshair at screen center (basic crosshair)
+        int centerX = w / 2;
+        int centerY = h / 2;
+        
+        g2.setColor(new Color(255, 255, 255, 200));
+        g2.setStroke(new BasicStroke(2f));
+        int len = 15;
         int gap = 5;
         
-        g2.setColor(new Color(255, 255, 255, 220));
+        // Basic crosshair (center of screen)
+        g2.drawLine(centerX - len, centerY, centerX - gap, centerY); // Left
+        g2.drawLine(centerX + gap, centerY, centerX + len, centerY); // Right
+        g2.drawLine(centerX, centerY - len, centerX, centerY - gap); // Top
+        g2.drawLine(centerX, centerY + gap, centerX, centerY + len); // Bottom
+        
+        // Center dot
+        g2.fillOval(centerX - 2, centerY - 2, 4, 4);
+
+        // Draw aim direction line from player position
+        g2.setColor(new Color(255, 100, 100, 120));
         g2.setStroke(new BasicStroke(2f));
         
-        // ?�하좌우 ?�인
-        g2.drawLine(cx - len, cy, cx - gap, cy); // �?        g2.drawLine(cx + gap, cy, cx + len, cy); // ??        g2.drawLine(cx, cy - len, cx, cy - gap); // ??        g2.drawLine(cx, cy + gap, cx, cy + len); // ??        
-        // 중앙 ??        g2.fillOval(cx - 2, cy - 2, 4, 4);
+        // Calculate aim endpoint in world coordinates
+        int aimLen = 100;
+        int aimX = myScreenPos.x + (int)(Math.cos(me.aim) * aimLen);
+        int aimY = myScreenPos.y + (int)(Math.sin(me.aim) * aimLen);
         
-        // 조�? 방향 ?�시 (aim 각도 - ??캐릭?�의 aim ?�용)
-        g2.setColor(new Color(255, 100, 100, 180));
-        g2.setStroke(new BasicStroke(3f));
-        int aimLen = 40;
-        int aimX = cx + (int)(Math.cos(me.aim) * aimLen);
-        int aimY = cy + (int)(Math.sin(me.aim) * aimLen);
-        g2.drawLine(cx, cy, aimX, aimY);
+        // Draw aim line from player position
+        g2.drawLine(myScreenPos.x, myScreenPos.y, aimX, aimY);
         
-        // 조�????�에 ?��? ??        g2.fillOval(aimX - 3, aimY - 3, 6, 6);
+        // Draw aim endpoint indicator
+        g2.fillOval(aimX - 4, aimY - 4, 8, 8);
     }
 }
 
